@@ -12,10 +12,10 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 
 // Import actual screens from the project
 import GeneralScreen from './GeneralScreen';
-import WelcomePage from './Login';
 import Login from './index';
 import PersonlizedScreen from './PersonlizedScreen';
 import Register from './Register';
+import WelcomePage from './WelcomePage';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();

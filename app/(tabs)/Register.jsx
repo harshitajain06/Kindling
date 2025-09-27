@@ -1,7 +1,17 @@
 import { useNavigation } from '@react-navigation/native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+    Dimensions,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 import Toast from 'react-native-toast-message';
 import { auth } from '../../config/firebase';
 
@@ -11,127 +21,275 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isFocused, setIsFocused] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const { width } = Dimensions.get('window');
+  const isWeb = Platform.OS === 'web';
+  const isTablet = width > 768;
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password) => {
+    return password.length >= 6;
+  };
+
+  const validateConfirmPassword = (password, confirmPassword) => {
+    return password === confirmPassword;
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (!validatePassword(password)) {
+      newErrors.password = 'Password must be at least 6 characters long';
+    }
+    
+    if (!confirmPassword.trim()) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (!validateConfirmPassword(password, confirmPassword)) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleRegister = async () => {
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!validateForm()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please fix the errors below',
+        position: 'top',
+      });
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
-      return;
-    }
+    setIsLoading(true);
+    setErrors({});
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Show success alert
-      Alert.alert('Success', 'Account created successfully!');
-
       // Show success toast
       Toast.show({
         type: 'success',
-        text1: 'Account created successfully!',
+        text1: 'Account Created!',
+        text2: 'Welcome to Kindling! You can now sign in.',
+        position: 'top',
+        visibilityTime: 4000,
       });
 
       // Navigate to the login screen
       navigation.navigate('Login');
     } catch (error) {
       let errorMessage;
+      let fieldError = null;
+      
       switch (error.code) {
         case 'auth/email-already-in-use':
           errorMessage = 'The email address is already in use.';
+          fieldError = 'email';
           break;
         case 'auth/invalid-email':
           errorMessage = 'The email address is not valid.';
+          fieldError = 'email';
           break;
         case 'auth/weak-password':
-          errorMessage = 'The password is too weak.';
+          errorMessage = 'The password is too weak. Please choose a stronger password.';
+          fieldError = 'password';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many failed attempts. Please try again later.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your connection.';
           break;
         default:
           errorMessage = 'An unknown error occurred. Please try again later.';
       }
 
-      // Show error alert
-      Alert.alert('Error', errorMessage);
+      // Set field-specific error
+      if (fieldError) {
+        setErrors(prev => ({ ...prev, [fieldError]: errorMessage }));
+      }
 
       // Show error toast
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: 'Registration Failed',
         text2: errorMessage,
+        position: 'top',
+        visibilityTime: 4000,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Logo */}
-      <Image source={require('../../assets/images/Logo.png')} style={styles.logo} />
+    <ScrollView 
+      style={[styles.container, isWeb && styles.webContainer]} 
+      contentContainerStyle={[styles.scrollContent, isWeb && styles.webScrollContent]}
+    >
+      <View style={[styles.formContainer, isTablet && styles.tabletFormContainer]}>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image source={require('../../assets/images/Logo.png')} style={styles.logo} />
+        </View>
 
-      {/* Title */}
-      <Text style={styles.title}>Register</Text>
+        {/* Title */}
+        <Text style={[styles.title, isWeb && styles.webTitle]}>Create Account</Text>
+        <Text style={[styles.subtitle, isWeb && styles.webSubtitle]}>Join Kindling and start your parenting journey</Text>
 
-      {/* Email Input */}
-      <TextInput
-        style={[
-          styles.input,
-          { borderColor: isFocused === 'email' ? '#007BFF' : '#ccc' }
-        ]}
-        placeholder="Email"
-        placeholderTextColor="#666"
-        value={email}
-        onChangeText={setEmail}
-        onFocus={() => setIsFocused('email')}
-        onBlur={() => setIsFocused(null)}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+        {/* Email Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Email Address</Text>
+          <TextInput
+            style={[
+              styles.input,
+              errors.email && styles.inputError,
+              isFocused === 'email' && styles.inputFocused,
+              isWeb && styles.webInput
+            ]}
+            placeholder="Enter your email"
+            placeholderTextColor="#999"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errors.email) {
+                setErrors(prev => ({ ...prev, email: null }));
+              }
+            }}
+            onFocus={() => setIsFocused('email')}
+            onBlur={() => setIsFocused(null)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!isLoading}
+          />
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+        </View>
 
-      {/* Password Input */}
-      <TextInput
-        style={[
-          styles.input,
-          { borderColor: isFocused === 'password' ? '#007BFF' : '#ccc' }
-        ]}
-        placeholder="Password"
-        placeholderTextColor="#666"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        onFocus={() => setIsFocused('password')}
-        onBlur={() => setIsFocused(null)}
-      />
+        {/* Password Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Password</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={[
+                styles.input,
+                styles.passwordInput,
+                errors.password && styles.inputError,
+                isFocused === 'password' && styles.inputFocused,
+                isWeb && styles.webInput
+              ]}
+              placeholder="Create a password"
+              placeholderTextColor="#999"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (errors.password) {
+                  setErrors(prev => ({ ...prev, password: null }));
+                }
+              }}
+              onFocus={() => setIsFocused('password')}
+              onBlur={() => setIsFocused(null)}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <Text style={styles.eyeIconText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+            </TouchableOpacity>
+          </View>
+          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+        </View>
 
-      {/* Confirm Password Input */}
-      <TextInput
-        style={[
-          styles.input,
-          { borderColor: isFocused === 'confirmPassword' ? '#007BFF' : '#ccc' }
-        ]}
-        placeholder="Confirm Password"
-        placeholderTextColor="#666"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        onFocus={() => setIsFocused('confirmPassword')}
-        onBlur={() => setIsFocused(null)}
-      />
+        {/* Confirm Password Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Confirm Password</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={[
+                styles.input,
+                styles.passwordInput,
+                errors.confirmPassword && styles.inputError,
+                isFocused === 'confirmPassword' && styles.inputFocused,
+                isWeb && styles.webInput
+              ]}
+              placeholder="Confirm your password"
+              placeholderTextColor="#999"
+              secureTextEntry={!showConfirmPassword}
+              value={confirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                if (errors.confirmPassword) {
+                  setErrors(prev => ({ ...prev, confirmPassword: null }));
+                }
+              }}
+              onFocus={() => setIsFocused('confirmPassword')}
+              onBlur={() => setIsFocused(null)}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              <Text style={styles.eyeIconText}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+            </TouchableOpacity>
+          </View>
+          {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+        </View>
 
-      {/* Register Button */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity onPress={handleRegister} style={styles.button}>
-          <Text style={styles.buttonText}>Register</Text>
-        </TouchableOpacity>
-
-        {/* Login Link */}
-        <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.loginLink}>Login</Text>
+        {/* Register Button */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            onPress={handleRegister} 
+            style={[
+              styles.button, 
+              isLoading && styles.buttonDisabled,
+              isWeb && styles.webButton
+            ]}
+            disabled={isLoading}
+          >
+            <Text style={[styles.buttonText, isLoading && styles.buttonTextDisabled]}>
+              {isLoading ? 'Creating Account...' : 'Create Account'}
+            </Text>
           </TouchableOpacity>
+
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Text style={[styles.loginText, isWeb && styles.webLoginText]}>
+              Already have an account?{' '}
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={[styles.loginLink, isWeb && styles.webLoginLink]}>
+                Sign In
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
       <Toast />
@@ -142,71 +300,216 @@ const Register = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DCE9FE',
+    backgroundColor: '#f8fafc',
+  },
+  webContainer: {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 40,
   },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
+  webScrollContent: {
+    minHeight: '100vh',
+    paddingVertical: 60,
   },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#567396',
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  tabletFormContainer: {
+    maxWidth: 500,
+    padding: 40,
+  },
+  logoContainer: {
+    alignItems: 'center',
     marginBottom: 30,
   },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1a202c',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  webTitle: {
+    fontSize: 36,
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#718096',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  webSubtitle: {
+    fontSize: 18,
+    color: '#4a5568',
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
   input: {
-    width: '100%',
-    height: 50,
-    borderBottomWidth: 1,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    color: '#333',
-    borderRadius: 10,
+    height: 56,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    color: '#1a202c',
+    borderRadius: 12,
+    fontSize: 16,
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+        transition: 'all 0.2s ease-in-out',
+      },
+    }),
+  },
+  webInput: {
+    borderColor: '#cbd5e0',
+    ':focus': {
+      borderColor: '#667eea',
+      boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
+    },
+  },
+  inputFocused: {
+    borderColor: '#667eea',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
+      },
+    }),
+  },
+  inputError: {
+    borderColor: '#e53e3e',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 0 3px rgba(229, 62, 62, 0.1)',
+      },
+    }),
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 50,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    padding: 4,
+  },
+  eyeIconText: {
+    fontSize: 20,
+  },
+  errorText: {
+    color: '#e53e3e',
+    fontSize: 14,
+    marginTop: 6,
+    fontWeight: '500',
   },
   buttonContainer: {
-    width: '100%',
-    padding: 35,
+    marginTop: 10,
   },
   button: {
-    backgroundColor: 'white',
-    paddingVertical: 15,
-    borderRadius: 25,
+    backgroundColor: '#667eea',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 4,
+    marginBottom: 20,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease-in-out',
+        ':hover': {
+          backgroundColor: '#5a67d8',
+          transform: 'translateY(-1px)',
+          boxShadow: '0 6px 12px rgba(102, 126, 234, 0.4)',
+        },
+      },
+    }),
+  },
+  webButton: {
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    ':hover': {
+      background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+    },
+  },
+  buttonDisabled: {
+    backgroundColor: '#a0aec0',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonText: {
-    color: '#567396',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonTextDisabled: {
+    color: '#e2e8f0',
   },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
   },
   loginText: {
-    color: '#333',
-    fontSize: 16,
+    color: '#718096',
+    fontSize: 14,
+  },
+  webLoginText: {
+    fontSize: 15,
   },
   loginLink: {
-    color: '#007BFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#667eea',
+    fontSize: 14,
+    fontWeight: '600',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        textDecoration: 'none',
+        ':hover': {
+          textDecoration: 'underline',
+        },
+      },
+    }),
+  },
+  webLoginLink: {
+    fontSize: 15,
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
   },
 });
 
