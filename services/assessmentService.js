@@ -182,3 +182,58 @@ export const getAssessmentStats = async () => {
   }
 };
 
+/**
+ * Save challenge progress to Firebase
+ * @param {string} userId - The authenticated user's ID
+ * @param {Object} challengeProgress - The challenge progress data
+ * @returns {Promise<boolean>} - Success status
+ */
+export const saveChallengeProgress = async (userId, challengeProgress) => {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const assessmentRef = doc(db, ASSESSMENTS_COLLECTION, userId);
+    
+    const dataToUpdate = {
+      challengeProgress,
+      updatedAt: serverTimestamp(),
+    };
+
+    await updateDoc(assessmentRef, dataToUpdate);
+    console.log('Challenge progress saved successfully');
+    return true;
+  } catch (error) {
+    console.error('Error saving challenge progress:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get challenge progress for a user
+ * @param {string} userId - The authenticated user's ID
+ * @returns {Promise<Object|null>} - Challenge progress or null if not found
+ */
+export const getChallengeProgress = async (userId) => {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const assessmentRef = doc(db, ASSESSMENTS_COLLECTION, userId);
+    const assessmentSnap = await getDoc(assessmentRef);
+
+    if (assessmentSnap.exists()) {
+      const data = assessmentSnap.data();
+      return data.challengeProgress || {};
+    } else {
+      console.log('No assessment found for user');
+      return {};
+    }
+  } catch (error) {
+    console.error('Error getting challenge progress:', error);
+    throw error;
+  }
+};
+

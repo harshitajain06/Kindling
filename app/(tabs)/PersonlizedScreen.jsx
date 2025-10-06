@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { ActivityIndicator, Alert, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ParentingStyleQuestionnaire from "../../components/ParentingStyleQuestionnaire";
 import ParentingStyleResults from "../../components/ParentingStyleResults";
 import { auth } from '../../config/firebase';
-import { getAssessmentResults, saveAssessmentResults } from "../../services/assessmentService";
+import { getAssessmentResults, getChallengeProgress, saveAssessmentResults, saveChallengeProgress } from "../../services/assessmentService";
 
 // Function to get personalized suggestions based on parenting style
 const getPersonalizedSuggestions = (dominantStyle) => {
@@ -633,6 +633,9 @@ export default function PersonlizedScreen() {
   const [isSavingData, setIsSavingData] = useState(false);
   const [challengeProgress, setChallengeProgress] = useState({});
   const [activeChallenge, setActiveChallenge] = useState(null);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   // Load existing assessment data when component mounts
   useEffect(() => {
@@ -644,6 +647,12 @@ export default function PersonlizedScreen() {
           if (existingResults) {
             setQuestionnaireResults(existingResults);
             setHasCompletedAssessment(true);
+          }
+          
+          // Load challenge progress data
+          const challengeData = await getChallengeProgress(user.uid);
+          if (challengeData && Object.keys(challengeData).length > 0) {
+            setChallengeProgress(challengeData);
           }
         } catch (error) {
           console.error('Error loading assessment data:', error);
@@ -689,74 +698,111 @@ export default function PersonlizedScreen() {
     setCurrentScreen('home');
   };
 
+  // Helper function to save challenge progress to Firebase
+  const saveChallengeProgressToFirebase = async (newChallengeProgress) => {
+    if (user) {
+      try {
+        await saveChallengeProgress(user.uid, newChallengeProgress);
+        console.log('Challenge progress saved to Firebase');
+      } catch (error) {
+        console.error('Error saving challenge progress:', error);
+        Alert.alert('Warning', 'Failed to save challenge progress. Your progress is still tracked locally.');
+      }
+    }
+  };
+
   // Challenge handling functions
   const handleStartChallenge = (challengeIndex, challenge) => {
     console.log('Starting challenge:', challengeIndex, challenge.title);
     setActiveChallenge({ index: challengeIndex, ...challenge });
-    setChallengeProgress(prev => ({
-      ...prev,
+    
+    const newChallengeProgress = {
+      ...challengeProgress,
       [challengeIndex]: {
         ...challenge,
         status: 'active',
         startDate: new Date().toISOString(),
         completed: false
       }
-    }));
+    };
     
-    // Show cross-platform alert
-    showAlert(
-      "Challenge Started!",
-      `You've started: ${challenge.title}\n\n${challenge.description}\n\nCheck back daily to track your progress!`,
-      [
-        { 
-          text: "Got it!", 
-          onPress: () => console.log('Alert dismissed')
-        }
-      ]
-    );
+    setChallengeProgress(newChallengeProgress);
+    
+    // Save to Firebase
+    saveChallengeProgressToFirebase(newChallengeProgress);
+    
+    // Show modal instead of alert
+    setSelectedChallenge({ index: challengeIndex, ...challenge });
+    setShowChallengeModal(true);
   };
 
   const handleCompleteChallenge = (challengeIndex) => {
-    setChallengeProgress(prev => ({
-      ...prev,
+    const newChallengeProgress = {
+      ...challengeProgress,
       [challengeIndex]: {
-        ...prev[challengeIndex],
+        ...challengeProgress[challengeIndex],
         status: 'completed',
         completedDate: new Date().toISOString(),
         completed: true
       }
-    }));
+    };
+    
+    setChallengeProgress(newChallengeProgress);
     setActiveChallenge(null);
-    showAlert(
-      "Challenge Completed!",
-      "Great job! You've completed this challenge. Keep up the excellent work!",
-      [{ text: "Awesome!" }]
-    );
+    
+    // Save to Firebase
+    saveChallengeProgressToFirebase(newChallengeProgress);
+    
+    setShowCompleteModal(true);
   };
 
   const handleSkipChallenge = (challengeIndex) => {
-    setChallengeProgress(prev => ({
-      ...prev,
+    const newChallengeProgress = {
+      ...challengeProgress,
       [challengeIndex]: {
-        ...prev[challengeIndex],
+        ...challengeProgress[challengeIndex],
         status: 'skipped',
         skippedDate: new Date().toISOString()
       }
-    }));
+    };
+    
+    setChallengeProgress(newChallengeProgress);
     setActiveChallenge(null);
-    showAlert(
-      "Challenge Skipped",
-      "No worries! You can always come back to this challenge later.",
-      [{ text: "OK" }]
-    );
+    
+    // Save to Firebase
+    saveChallengeProgressToFirebase(newChallengeProgress);
+    
+    setShowChallengeModal(false);
   };
 
   const getChallengeStatus = (challengeIndex) => {
     return challengeProgress[challengeIndex]?.status || 'not_started';
   };
 
+  // Check if a challenge can be started (previous day must be completed)
+  const canStartChallenge = (challengeIndex) => {
+    // Day 1 (index 0) can always be started
+    if (challengeIndex === 0) {
+      return true;
+    }
+    
+    // For other days, check if previous day is completed
+    const previousDayStatus = getChallengeStatus(challengeIndex - 1);
+    return previousDayStatus === 'completed';
+  };
+
+  // Check if a challenge is locked (previous day not completed)
+  const isChallengeLocked = (challengeIndex) => {
+    return !canStartChallenge(challengeIndex);
+  };
+
   const getChallengeButtonText = (challengeIndex) => {
     const status = getChallengeStatus(challengeIndex);
+    
+    if (isChallengeLocked(challengeIndex)) {
+      return 'Locked';
+    }
+    
     switch (status) {
       case 'active': return 'In Progress';
       case 'completed': return 'Completed ✓';
@@ -766,6 +812,10 @@ export default function PersonlizedScreen() {
   };
 
   const getChallengeButtonStyle = (challengeIndex) => {
+    if (isChallengeLocked(challengeIndex)) {
+      return styles.challengeButtonLocked;
+    }
+    
     const status = getChallengeStatus(challengeIndex);
     switch (status) {
       case 'active': return styles.challengeButtonActive;
@@ -932,7 +982,7 @@ export default function PersonlizedScreen() {
               <Text style={styles.sectionTitle}>This Week's Challenges</Text>
               <Text style={styles.challengesSubtitle}>Personalized activities to strengthen your parenting</Text>
               {getWeeklyChallenges(questionnaireResults?.dominantStyle).map((challenge, index) => (
-                <View key={index} style={styles.challengeItem}>
+                <View key={index} style={[styles.challengeItem, isChallengeLocked(index) && styles.challengeItemLocked]}>
                   <View style={styles.challengeHeader}>
                     <Text style={styles.challengeDay}>Day {index + 1}</Text>
                     <View style={[styles.challengeIcon, { backgroundColor: challenge.color }]}>
@@ -949,15 +999,14 @@ export default function PersonlizedScreen() {
                         const status = getChallengeStatus(index);
                         console.log('Current status:', status);
                         
+                        // Don't allow interaction with locked challenges
+                        if (isChallengeLocked(index)) {
+                          return;
+                        }
+                        
                         if (status === 'active') {
-                          showAlert(
-                            "Complete Challenge?",
-                            "Have you completed this challenge?",
-                            [
-                              { text: "Not Yet" },
-                              { text: "Complete", onPress: () => handleCompleteChallenge(index) }
-                            ]
-                          );
+                          setSelectedChallenge({ index, ...challenge });
+                          setShowCompleteModal(true);
                         } else if (status === 'not_started') {
                           console.log('Starting challenge...');
                           handleStartChallenge(index, challenge);
@@ -967,19 +1016,25 @@ export default function PersonlizedScreen() {
                         }
                       }}
                     >
-                      <Text style={styles.challengeButtonText}>{getChallengeButtonText(index)}</Text>
+                      <Text style={isChallengeLocked(index) ? styles.challengeButtonLockedText : styles.challengeButtonText}>
+                        {getChallengeButtonText(index)}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={styles.challengeInfoButton}
+                      style={[styles.challengeInfoButton, isChallengeLocked(index) && styles.challengeInfoButtonLocked]}
                       onPress={() => {
-                        const buttons = [{ text: "OK" }];
-                        if (getChallengeStatus(index) === 'active') {
-                          buttons.push({ text: "Skip", onPress: () => handleSkipChallenge(index) });
+                        if (isChallengeLocked(index)) {
+                          return;
                         }
-                        showAlert(challenge.title, challenge.description, buttons);
+                        setSelectedChallenge({ index, ...challenge });
+                        setShowChallengeModal(true);
                       }}
                     >
-                      <Ionicons name="information-circle" size={16} color="#3498DB" />
+                      <Ionicons 
+                        name="information-circle" 
+                        size={16} 
+                        color={isChallengeLocked(index) ? "#95A5A6" : "#3498DB"} 
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1189,6 +1244,98 @@ export default function PersonlizedScreen() {
           </>
         )}
     </ScrollView>
+
+    {/* Challenge Info Modal */}
+    <Modal
+      visible={showChallengeModal}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setShowChallengeModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <View style={[styles.modalIcon, { backgroundColor: selectedChallenge?.color || '#3498DB' }]}>
+              <Ionicons name={selectedChallenge?.icon || 'bulb'} size={24} color="#fff" />
+            </View>
+            <Text style={styles.modalTitle}>{selectedChallenge?.title || 'Challenge'}</Text>
+            <TouchableOpacity 
+              style={styles.modalCloseButton}
+              onPress={() => setShowChallengeModal(false)}
+            >
+              <Ionicons name="close" size={24} color="#6C757D" />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.modalDescription}>
+            {selectedChallenge?.description || 'No description available.'}
+          </Text>
+          
+          <View style={styles.modalActions}>
+            {getChallengeStatus(selectedChallenge?.index) === 'active' && (
+              <TouchableOpacity 
+                style={styles.modalSkipButton}
+                onPress={() => {
+                  handleSkipChallenge(selectedChallenge?.index);
+                  setShowChallengeModal(false);
+                }}
+              >
+                <Text style={styles.modalSkipButtonText}>Skip Challenge</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity 
+              style={styles.modalCloseActionButton}
+              onPress={() => setShowChallengeModal(false)}
+            >
+              <Text style={styles.modalCloseActionButtonText}>Got it!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+
+    {/* Challenge Complete Modal */}
+    <Modal
+      visible={showCompleteModal}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setShowCompleteModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <View style={[styles.modalIcon, { backgroundColor: '#27AE60' }]}>
+              <Ionicons name="checkmark" size={24} color="#fff" />
+            </View>
+            <Text style={styles.modalTitle}>Challenge Completed!</Text>
+            <TouchableOpacity 
+              style={styles.modalCloseButton}
+              onPress={() => setShowCompleteModal(false)}
+            >
+              <Ionicons name="close" size={24} color="#6C757D" />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.modalDescription}>
+            Great job! You've completed this challenge. Keep up the excellent work!
+          </Text>
+          
+          <View style={styles.modalActions}>
+            <TouchableOpacity 
+              style={styles.modalCloseActionButton}
+              onPress={() => {
+                if (selectedChallenge?.index !== undefined) {
+                  handleCompleteChallenge(selectedChallenge.index);
+                }
+                setShowCompleteModal(false);
+              }}
+            >
+              <Text style={styles.modalCloseActionButtonText}>Awesome!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
     </SafeAreaView>
   );
 }
@@ -1612,8 +1759,22 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  challengeButtonLocked: {
+    backgroundColor: "#E9ECEF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 8,
+  },
   challengeButtonText: {
     color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  challengeButtonLockedText: {
+    color: "#6C757D",
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
@@ -1788,6 +1949,13 @@ const styles = StyleSheet.create({
   challengeInfoButton: {
     padding: 8,
     marginLeft: 8,
+  },
+  challengeInfoButtonLocked: {
+    opacity: 0.5,
+  },
+  challengeItemLocked: {
+    opacity: 0.6,
+    backgroundColor: '#F8F9FA',
   },
   progressBox: {
     width: "90%",
@@ -1980,5 +2148,83 @@ const styles = StyleSheet.create({
   resourceDuration: {
     fontSize: 12,
     color: "#6C757D",
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 25,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1C2541',
+  },
+  modalCloseButton: {
+    padding: 5,
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: '#6C757D',
+    lineHeight: 24,
+    marginBottom: 25,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalSkipButton: {
+    backgroundColor: '#E9ECEF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  modalSkipButtonText: {
+    color: '#6C757D',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalCloseActionButton: {
+    backgroundColor: '#3498DB',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  modalCloseActionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
