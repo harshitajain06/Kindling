@@ -2,15 +2,15 @@ import { useNavigation } from '@react-navigation/native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { auth } from '../../config/firebase';
@@ -290,6 +290,7 @@ const Register = () => {
               </Text>
             </TouchableOpacity>
           </View>
+
         </View>
       </View>
       <Toast />
@@ -311,78 +312,77 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingVertical: 20,
   },
   webScrollContent: {
     minHeight: '100vh',
-    paddingVertical: 60,
+    paddingVertical: 20,
   },
   formContainer: {
     width: '100%',
     maxWidth: 400,
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 30,
+    borderRadius: 16,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowRadius: 16,
+    elevation: 8,
   },
   tabletFormContainer: {
     maxWidth: 500,
-    padding: 40,
+    padding: 24,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   title: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: '700',
     color: '#1a202c',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   webTitle: {
-    fontSize: 36,
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    fontSize: 28,
+    color: '#667eea',
+    fontWeight: '700',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#718096',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   webSubtitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#4a5568',
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   input: {
-    height: 56,
+    height: 48,
     borderWidth: 2,
     borderColor: '#e2e8f0',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     backgroundColor: '#ffffff',
     color: '#1a202c',
-    borderRadius: 12,
-    fontSize: 16,
+    borderRadius: 10,
+    fontSize: 14,
     ...Platform.select({
       web: {
         outlineStyle: 'none',
@@ -417,37 +417,37 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   passwordInput: {
-    paddingRight: 50,
+    paddingRight: 45,
   },
   eyeIcon: {
     position: 'absolute',
-    right: 16,
-    top: 16,
-    padding: 4,
+    right: 14,
+    top: 14,
+    padding: 3,
   },
   eyeIconText: {
-    fontSize: 20,
+    fontSize: 18,
   },
   errorText: {
     color: '#e53e3e',
-    fontSize: 14,
-    marginTop: 6,
+    fontSize: 12,
+    marginTop: 4,
     fontWeight: '500',
   },
   buttonContainer: {
-    marginTop: 10,
+    marginTop: 8,
   },
   button: {
     backgroundColor: '#667eea',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 6,
+    elevation: 4,
     ...Platform.select({
       web: {
         cursor: 'pointer',
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
         ':hover': {
           backgroundColor: '#5a67d8',
           transform: 'translateY(-1px)',
-          boxShadow: '0 6px 12px rgba(102, 126, 234, 0.4)',
+          boxShadow: '0 4px 8px rgba(102, 126, 234, 0.4)',
         },
       },
     }),
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   buttonTextDisabled: {
@@ -486,14 +486,14 @@ const styles = StyleSheet.create({
   },
   loginText: {
     color: '#718096',
-    fontSize: 14,
+    fontSize: 13,
   },
   webLoginText: {
-    fontSize: 15,
+    fontSize: 14,
   },
   loginLink: {
     color: '#667eea',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     ...Platform.select({
       web: {
@@ -506,10 +506,9 @@ const styles = StyleSheet.create({
     }),
   },
   webLoginLink: {
-    fontSize: 15,
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    fontSize: 14,
+    color: '#667eea',
+    fontWeight: '600',
   },
 });
 

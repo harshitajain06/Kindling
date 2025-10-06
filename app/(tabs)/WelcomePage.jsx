@@ -1,14 +1,14 @@
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
-    Dimensions,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const WelcomePage = () => {
@@ -22,6 +22,8 @@ const WelcomePage = () => {
     <ScrollView 
       style={[styles.container, isWeb && styles.webContainer]} 
       contentContainerStyle={[styles.scrollContent, isWeb && styles.webScrollContent]}
+      showsVerticalScrollIndicator={true}
+      bounces={false}
     >
       <View style={[styles.content, isTablet && styles.tabletContent]}>
         {/* Hero Section */}
@@ -29,6 +31,15 @@ const WelcomePage = () => {
           <View style={styles.logoContainer}>
             <Image source={require('../../assets/images/Logo.png')} style={styles.logo} />
           </View>
+          
+          <TouchableOpacity 
+            style={[styles.primaryButton, isWeb && styles.webPrimaryButton]}
+            onPress={() => navigation.navigate('Register')}
+          >
+            <Text style={[styles.primaryButtonText, isWeb && styles.webPrimaryButtonText]}>
+              Get Started
+            </Text>
+          </TouchableOpacity>
           
           <Text style={[styles.title, isWeb && styles.webTitle]}>
             Welcome to Kindling
@@ -41,8 +52,8 @@ const WelcomePage = () => {
         </View>
 
         {/* Features Section */}
-        <View style={styles.featuresSection}>
-          <View style={styles.featureCard}>
+        <View style={[styles.featuresSection, isWeb && styles.webFeaturesSection]}>
+          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
             <View style={styles.featureIcon}>
               <Text style={styles.featureEmoji}>🎯</Text>
             </View>
@@ -52,7 +63,7 @@ const WelcomePage = () => {
             </Text>
           </View>
 
-          <View style={styles.featureCard}>
+          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
             <View style={styles.featureIcon}>
               <Text style={styles.featureEmoji}>📚</Text>
             </View>
@@ -62,7 +73,7 @@ const WelcomePage = () => {
             </Text>
           </View>
 
-          <View style={styles.featureCard}>
+          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
             <View style={styles.featureIcon}>
               <Text style={styles.featureEmoji}>👥</Text>
             </View>
@@ -71,19 +82,30 @@ const WelcomePage = () => {
               Connect with other parents and share experiences in a supportive environment.
             </Text>
           </View>
+
+          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
+            <View style={styles.featureIcon}>
+              <Text style={styles.featureEmoji}>📊</Text>
+            </View>
+            <Text style={styles.featureTitle}>Progress Tracking</Text>
+            <Text style={styles.featureDescription}>
+              Monitor your parenting journey with detailed insights and progress reports.
+            </Text>
+          </View>
+
+          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
+            <View style={styles.featureIcon}>
+              <Text style={styles.featureEmoji}>🎨</Text>
+            </View>
+            <Text style={styles.featureTitle}>Personalized Content</Text>
+            <Text style={styles.featureDescription}>
+              Get customized recommendations and content based on your family's unique needs.
+            </Text>
+          </View>
         </View>
 
         {/* CTA Section */}
         <View style={styles.ctaSection}>
-          <TouchableOpacity 
-            style={[styles.primaryButton, isWeb && styles.webPrimaryButton]}
-            onPress={() => navigation.navigate('Register')}
-          >
-            <Text style={[styles.primaryButtonText, isWeb && styles.webPrimaryButtonText]}>
-              Get Started
-            </Text>
-          </TouchableOpacity>
-
           <TouchableOpacity 
             style={[styles.secondaryButton, isWeb && styles.webSecondaryButton]}
             onPress={() => navigation.navigate('Login')}
@@ -111,8 +133,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   webContainer: {
-    minHeight: '100vh',
+    height: '100vh',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    overflow: 'auto',
+    ...Platform.select({
+      web: {
+        '::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '::-webkit-scrollbar-track': {
+          background: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '4px',
+        },
+        '::-webkit-scrollbar-thumb': {
+          background: 'rgba(255, 255, 255, 0.3)',
+          borderRadius: '4px',
+        },
+        '::-webkit-scrollbar-thumb:hover': {
+          background: 'rgba(255, 255, 255, 0.5)',
+        },
+      },
+    }),
   },
   scrollContent: {
     flexGrow: 1,
@@ -122,8 +163,11 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   webScrollContent: {
+    paddingVertical: 20,
     minHeight: '100vh',
-    paddingVertical: 60,
+    justifyContent: 'center',
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
@@ -135,56 +179,62 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 60,
-  },
-  logoContainer: {
     marginBottom: 30,
   },
+  logoContainer: {
+    marginBottom: 16,
+  },
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   title: {
-    fontSize: 42,
+    fontSize: 32,
     fontWeight: '800',
     color: '#1a202c',
     textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 50,
+    marginBottom: 12,
+    lineHeight: 38,
   },
   webTitle: {
-    fontSize: 48,
+    fontSize: 36,
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#4a5568',
     textAlign: 'center',
-    lineHeight: 28,
+    lineHeight: 24,
     maxWidth: 600,
   },
   webSubtitle: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#2d3748',
   },
   featuresSection: {
     width: '100%',
-    marginBottom: 60,
+    marginBottom: 30,
+  },
+  webFeaturesSection: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '12px',
+    marginBottom: 20,
   },
   featureCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 20,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
     ...Platform.select({
       web: {
         transition: 'all 0.2s ease-in-out',
@@ -195,42 +245,45 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  webFeatureCard: {
+    marginBottom: 0,
+  },
   featureIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#f7fafc',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   featureEmoji: {
-    fontSize: 28,
+    fontSize: 20,
   },
   featureTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#1a202c',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   featureDescription: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#718096',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
   },
   ctaSection: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   primaryButton: {
     backgroundColor: '#667eea',
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 12,
-    marginBottom: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 10,
+    marginBottom: 12,
     shadowColor: '#667eea',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
@@ -256,16 +309,16 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
   },
   webPrimaryButtonText: {
-    fontSize: 20,
+    fontSize: 18,
   },
   secondaryButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     ...Platform.select({
       web: {
         cursor: 'pointer',
@@ -283,12 +336,12 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: '#667eea',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
   },
   webSecondaryButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
