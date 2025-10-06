@@ -823,8 +823,9 @@ export default function PersonlizedScreen() {
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
-          <Text style={styles.logo}>Kindling</Text>
-          <Text style={styles.tagline}>Personalized Parenting Journey</Text>
+        <Ionicons name="heart-outline" size={42} color="#FF99C8" />
+        <Text style={styles.logo}>Kindling</Text>
+        <Text style={styles.subtitle}>Personalized Parenting Journey</Text>
       </View>
 
         {hasCompletedAssessment ? (
@@ -905,24 +906,6 @@ export default function PersonlizedScreen() {
                 ))}
               </View>
               
-              {/* Test Alert Button */}
-              <TouchableOpacity 
-                style={styles.testAlertButton}
-                onPress={() => {
-                  console.log('Test alert button pressed');
-                  showAlert("Test Alert", "This is a test alert to verify Alert is working!");
-                }}
-              >
-                <Text style={styles.testAlertButtonText}>Test Alert (Cross-Platform)</Text>
-              </TouchableOpacity>
-              
-              {/* Simple Alert Test */}
-              <TouchableOpacity 
-                style={[styles.testAlertButton, { backgroundColor: "#3498DB" }]}
-                onPress={() => showAlert("Simple", "Hello from web!")}
-              >
-                <Text style={styles.testAlertButtonText}>Simple Alert</Text>
-              </TouchableOpacity>
             </View>
 
             {/* Detailed Analysis */}
@@ -1213,48 +1196,55 @@ export default function PersonlizedScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: "#F8F9FA" 
+    backgroundColor: "#F9FAFB" 
   },
   scrollContainer: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
+    alignItems: "center",
+    paddingBottom: 50,
+  },
+  header: {
+    paddingTop: 20,
     paddingBottom: 20,
+    alignItems: "center",
+    backgroundColor: "#0B132B",
+    width: "100%",
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  header: { 
-    paddingVertical: 30, 
-    alignItems: "center" 
+  logo: {
+    fontSize: 34,
+    fontWeight: "800",
+    color: "#FF99C8",
+    marginTop: 2,
   },
-  logo: { 
-    fontSize: 32, 
-    fontWeight: "bold", 
-    color: "#2C3E50" 
-  },
-  tagline: { 
-    fontSize: 16, 
-    color: "#6C757D", 
-    marginTop: 8, 
-    textAlign: "center" 
+  subtitle: {
+    fontSize: 15,
+    color: "#EAEAEA",
+    textAlign: "center",
+    marginTop: 6,
   },
   welcomeBox: { 
+    width: "90%",
     backgroundColor: "#fff", 
     marginVertical: 15, 
     padding: 25, 
-    borderRadius: 16, 
+    borderRadius: 18, 
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
   sectionTitle: { 
     fontSize: 20, 
-    fontWeight: "bold", 
-    color: "#2C3E50",
+    fontWeight: "700", 
+    color: "#1C2541",
     marginBottom: 15,
     textAlign: "center" 
   },
@@ -1265,18 +1255,19 @@ const styles = StyleSheet.create({
     textAlign: "center" 
   },
   assessmentCard: { 
+    width: "90%",
     backgroundColor: "#fff", 
     marginVertical: 15, 
     padding: 25, 
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
   assessmentHeader: {
     flexDirection: 'row',
@@ -1323,18 +1314,19 @@ const styles = StyleSheet.create({
     fontWeight: "600" 
   },
   benefitsBox: { 
+    width: "90%",
     backgroundColor: "#fff", 
     marginVertical: 15, 
     padding: 25, 
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
   benefitItem: {
     flexDirection: 'row',
@@ -1358,18 +1350,19 @@ const styles = StyleSheet.create({
   },
   // Post-Assessment Styles
   resultsSummaryBox: {
+    width: "90%",
     backgroundColor: "#E8F5E9",
     marginVertical: 15,
     padding: 25,
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
   resultsHeader: {
     flexDirection: 'row',
@@ -1392,18 +1385,19 @@ const styles = StyleSheet.create({
     color: "#27AE60",
   },
   statsBox: {
+    width: "90%",
     backgroundColor: "#fff",
     marginVertical: 15,
     padding: 25,
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -1430,6 +1424,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   actionButtonsBox: {
+    width: "90%",
     marginVertical: 15,
     gap: 12,
   },
@@ -1464,18 +1459,19 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   recommendationsBox: {
+    width: "90%",
     backgroundColor: "#fff",
     marginVertical: 15,
     padding: 25,
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
   recommendationItem: {
     flexDirection: 'row',
@@ -1501,18 +1497,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   quickActionsBox: {
+    width: "90%",
     backgroundColor: "#fff",
     marginVertical: 15,
     padding: 25,
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
   quickActionsGrid: {
     flexDirection: 'row',
@@ -1622,15 +1619,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   progressSummaryBox: {
+    width: "90%",
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 18,
+    padding: 25,
+    marginVertical: 15,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
   progressStats: {
     flexDirection: "row",
@@ -1670,18 +1668,317 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
   },
-  testAlertButton: {
-    backgroundColor: "#E74C3C",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 15,
-    alignSelf: "center",
+  // Missing style definitions
+  analysisBox: {
+    width: "90%",
+    backgroundColor: "#fff",
+    marginVertical: 15,
+    padding: 25,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
   },
-  testAlertButtonText: {
-    color: "#fff",
+  analysisItem: {
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  analysisHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  analysisTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: "#2C3E50",
+    marginLeft: 12,
+  },
+  analysisDescription: {
     fontSize: 16,
-    fontWeight: "600",
+    color: "#6C757D",
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  percentageBar: {
+    height: 6,
+    backgroundColor: '#E9ECEF',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  percentageFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  challengesBox: {
+    width: "90%",
+    backgroundColor: "#fff",
+    marginVertical: 15,
+    padding: 25,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  challengesSubtitle: {
+    fontSize: 14,
+    color: "#6C757D",
     textAlign: "center",
+    marginBottom: 20,
+    fontStyle: "italic",
+  },
+  challengeItem: {
+    backgroundColor: '#F8F9FA',
+    marginBottom: 15,
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  challengeDay: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: "#6C757D",
+    backgroundColor: '#E9ECEF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  challengeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  challengeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: "#2C3E50",
+    marginBottom: 6,
+  },
+  challengeDescription: {
+    fontSize: 14,
+    color: "#6C757D",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  challengeActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  challengeInfoButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  progressBox: {
+    width: "90%",
+    backgroundColor: "#fff",
+    marginVertical: 15,
+    padding: 25,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  progressTimeline: {
+    marginTop: 15,
+  },
+  progressItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  progressDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 15,
+    marginTop: 6,
+  },
+  progressCompleted: {
+    backgroundColor: '#27AE60',
+  },
+  progressCurrent: {
+    backgroundColor: '#3498DB',
+  },
+  progressPending: {
+    backgroundColor: '#E9ECEF',
+  },
+  progressContent: {
+    flex: 1,
+  },
+  progressTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: "#2C3E50",
+    marginBottom: 4,
+  },
+  progressDate: {
+    fontSize: 14,
+    color: "#6C757D",
+  },
+  communityBox: {
+    width: "90%",
+    backgroundColor: "#fff",
+    marginVertical: 15,
+    padding: 25,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  communitySubtitle: {
+    fontSize: 14,
+    color: "#6C757D",
+    textAlign: "center",
+    marginBottom: 20,
+    fontStyle: "italic",
+  },
+  insightItem: {
+    backgroundColor: '#F8F9FA',
+    marginBottom: 15,
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  insightAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#3498DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  insightInitial: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  insightInfo: {
+    flex: 1,
+  },
+  insightName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: "#2C3E50",
+    marginBottom: 2,
+  },
+  insightRole: {
+    fontSize: 12,
+    color: "#6C757D",
+  },
+  insightRating: {
+    flexDirection: 'row',
+  },
+  insightText: {
+    fontSize: 14,
+    color: "#3A506B",
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  resourcesBox: {
+    width: "90%",
+    backgroundColor: "#fff",
+    marginVertical: 15,
+    padding: 25,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  resourcesSubtitle: {
+    fontSize: 14,
+    color: "#6C757D",
+    textAlign: "center",
+    marginBottom: 20,
+    fontStyle: "italic",
+  },
+  resourceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    marginBottom: 12,
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  resourceIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  resourceContent: {
+    flex: 1,
+  },
+  resourceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: "#2C3E50",
+    marginBottom: 4,
+  },
+  resourceDescription: {
+    fontSize: 14,
+    color: "#6C757D",
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  resourceMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  resourceType: {
+    fontSize: 12,
+    color: "#3498DB",
+    fontWeight: '500',
+    marginRight: 10,
+  },
+  resourceDuration: {
+    fontSize: 12,
+    color: "#6C757D",
   },
 });
