@@ -34,7 +34,7 @@ const WelcomePage = () => {
           
           <TouchableOpacity 
             style={[styles.primaryButton, isWeb && styles.webPrimaryButton]}
-            onPress={() => navigation.navigate('Register')}
+            onPress={() => navigation.navigate('Login')}
           >
             <Text style={[styles.primaryButtonText, isWeb && styles.webPrimaryButtonText]}>
               Get Started
