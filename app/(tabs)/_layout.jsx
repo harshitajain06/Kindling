@@ -4,8 +4,8 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { signOut } from 'firebase/auth';
-import React from 'react';
-import { Alert } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
@@ -82,55 +82,95 @@ const BottomTabs = () => {
 // Drawer Navigator Component
 const DrawerNavigator = () => {
   const navigation = useNavigation();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Confirm Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => {
-            signOut(auth)
-              .then(() => {
-                navigation.replace('Login'); // Navigate to Login screen
-              })
-              .catch((err) => {
-                console.error('Logout Error:', err);
-                Alert.alert('Error', 'Failed to logout. Please try again.');
-              });
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    signOut(auth)
+      .then(() => {
+        navigation.replace('Login'); // Navigate to Login screen
+      })
+      .catch((err) => {
+        console.error('Logout Error:', err);
+        Alert.alert('Error', 'Failed to logout. Please try again.');
+      });
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutModal(false);
   };
 
   return (
-    <Drawer.Navigator initialRouteName="MainTabs">
-      <Drawer.Screen name="MainTabs" component={BottomTabs} options={{ title: 'Home' }} />
-      {/* Additional screens can be added here if needed */}
+    <>
+      <Drawer.Navigator initialRouteName="MainTabs">
+        <Drawer.Screen name="MainTabs" component={BottomTabs} options={{ title: 'Home' }} />
+        {/* Additional screens can be added here if needed */}
 
-      {/* Logout option */}
-      <Drawer.Screen
-        name="Logout"
-        component={BottomTabs}
-        options={{
-          title: 'Logout',
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="log-out-outline" size={size} color={color} />
-          ),
-        }}
-        listeners={{
-          drawerItemPress: (e) => {
-            e.preventDefault();
-            handleLogout();
-          },
-        }}
-      />
-    </Drawer.Navigator>
+        {/* Logout option */}
+        <Drawer.Screen
+          name="Logout"
+          component={BottomTabs}
+          options={{
+            title: 'Logout',
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="log-out-outline" size={size} color={color} />
+            ),
+          }}
+          listeners={{
+            drawerItemPress: (e) => {
+              e.preventDefault();
+              handleLogout();
+            },
+          }}
+        />
+      </Drawer.Navigator>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={cancelLogout}
+      >
+        <View style={styles.logoutModalOverlay}>
+          <View style={styles.logoutModalContainer}>
+            <View style={styles.logoutModalHeader}>
+              <View style={styles.logoutModalIconContainer}>
+                <View style={styles.logoutModalIcon}>
+                  <Ionicons name="log-out" size={32} color="#fff" />
+                </View>
+              </View>
+              <Text style={styles.logoutModalTitle}>Confirm Logout</Text>
+              <Text style={styles.logoutModalMessage}>
+                Are you sure you want to logout? You'll need to sign in again to access your personalized content.
+              </Text>
+            </View>
+            
+            <View style={styles.logoutModalActions}>
+              <TouchableOpacity 
+                style={styles.logoutModalCancelButton}
+                onPress={cancelLogout}
+              >
+                <Ionicons name="close-circle" size={20} color="#6C757D" />
+                <Text style={styles.logoutModalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.logoutModalConfirmButton}
+                onPress={confirmLogout}
+              >
+                <Ionicons name="log-out" size={20} color="#fff" />
+                <Text style={styles.logoutModalConfirmButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
@@ -157,3 +197,113 @@ export default function StackLayout() {
     </Stack.Navigator>
   );
 }
+
+// Logout Modal Styles
+const styles = StyleSheet.create({
+  logoutModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  logoutModalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 20,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  logoutModalHeader: {
+    padding: 32,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+  },
+  logoutModalIconContainer: {
+    marginBottom: 20,
+  },
+  logoutModalIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E74C3C',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#E74C3C',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  logoutModalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1C2541',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  logoutModalMessage: {
+    fontSize: 16,
+    color: '#6C757D',
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  logoutModalActions: {
+    flexDirection: 'row',
+    padding: 24,
+    gap: 12,
+  },
+  logoutModalCancelButton: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  logoutModalCancelButtonText: {
+    color: '#6C757D',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  logoutModalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#E74C3C',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#E74C3C',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  logoutModalConfirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});
