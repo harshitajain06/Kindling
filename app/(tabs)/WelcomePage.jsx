@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -15,50 +15,72 @@ import Animated, {
   useSharedValue,
   withTiming,
   withDelay,
+  withSequence,
   Easing,
+  interpolate,
 } from 'react-native-reanimated';
 
-const AnimatedCard = ({ children, delay = 0, index, cardWidth, isFirst, isLast }) => {
+const StackedCard = ({ children, isVisible, index, totalCards, cardWidth }) => {
   const opacity = useSharedValue(0);
-  const translateX = useSharedValue(30);
+  const scale = useSharedValue(0.8);
+  const translateY = useSharedValue(50);
+  const zIndex = useSharedValue(totalCards - index);
 
   useEffect(() => {
-    opacity.value = withDelay(
-      delay,
-      withTiming(1, {
-        duration: 500,
+    if (isVisible) {
+      opacity.value = withTiming(1, {
+        duration: 600,
         easing: Easing.out(Easing.ease),
-      })
-    );
-    translateX.value = withDelay(
-      delay,
-      withTiming(0, {
-        duration: 500,
+      });
+      scale.value = withSequence(
+        withTiming(1.05, { duration: 300, easing: Easing.out(Easing.ease) }),
+        withTiming(1, { duration: 300, easing: Easing.in(Easing.ease) })
+      );
+      translateY.value = withTiming(0, {
+        duration: 600,
         easing: Easing.out(Easing.ease),
-      })
-    );
-  }, [delay, opacity, translateX]);
+      });
+      zIndex.value = withTiming(100, { duration: 0 });
+    } else {
+      opacity.value = withTiming(0.3, {
+        duration: 400,
+        easing: Easing.in(Easing.ease),
+      });
+      scale.value = withTiming(0.95, {
+        duration: 400,
+        easing: Easing.in(Easing.ease),
+      });
+      zIndex.value = withTiming(totalCards - index, { duration: 0 });
+    }
+  }, [isVisible, index, totalCards, opacity, scale, translateY, zIndex]);
 
   const animatedStyle = useAnimatedStyle(() => {
+    const offset = (totalCards - index - 1) * 8;
     return {
       opacity: opacity.value,
-      transform: [{ translateX: translateX.value }],
+      transform: [
+        { translateY: translateY.value - offset },
+        { scale: scale.value },
+      ],
+      zIndex: zIndex.value,
     };
   });
 
   return (
     <Animated.View
       style={[
+        styles.cardContainer,
         animatedStyle,
         styles.featureCard,
-        { 
+        {
           width: cardWidth,
-          marginLeft: isFirst ? 0 : 6,
-          marginRight: isLast ? 0 : 6,
+          position: 'absolute',
         },
       ]}
     >
-      {children}
+      <View style={styles.cardContent}>
+        {children}
+      </View>
     </Animated.View>
   );
 };
@@ -98,13 +120,17 @@ const WelcomePage = () => {
     },
   ];
 
-  // Calculate card width to fit all 5 cards on one screen
-  const horizontalPadding = Platform.OS === 'web' ? 40 : 20;
-  const gridPadding = Platform.OS === 'web' ? 20 : 10;
-  const totalSpacing = 12 * 4; // 4 gaps between 5 cards (6px margin on each side = 12px between cards)
-  const availableWidth = width - (horizontalPadding * 2) - (gridPadding * 2);
-  const cardWidth = Math.floor((availableWidth - totalSpacing) / 5);
-  const cardSpacing = 12;
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const cardWidth = Math.min(width * 0.85, 320);
+
+  // Auto-advance cards every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentCardIndex((prev) => (prev + 1) % features.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [features.length]);
 
   return (
     <View style={[styles.container, isWeb && styles.webContainer]}>
@@ -130,40 +156,46 @@ const WelcomePage = () => {
           </Text>
         </View>
 
-        {/* Features Section - All cards visible */}
+        {/* Features Section - Stacked Cards */}
         <View style={styles.featuresContainer}>
-          <View style={styles.featuresGrid}>
+          <View style={[styles.cardStack, { width: cardWidth, height: 180 }]}>
             {features.map((feature, index) => (
-              <AnimatedCard 
-                key={index} 
-                delay={index * 100} 
+              <StackedCard
+                key={index}
+                isVisible={index === currentCardIndex}
                 index={index}
+                totalCards={features.length}
                 cardWidth={cardWidth}
-                isFirst={index === 0}
-                isLast={index === features.length - 1}
               >
                 <View style={styles.featureIcon}>
                   <Text style={styles.featureEmoji}>{feature.emoji}</Text>
                 </View>
-                <Text style={styles.featureTitle} numberOfLines={2}>{feature.title}</Text>
-                <Text style={styles.featureDescription} numberOfLines={3}>
+                <Text style={styles.featureTitle}>{feature.title}</Text>
+                <Text style={styles.featureDescription}>
                   {feature.description}
                 </Text>
-              </AnimatedCard>
+              </StackedCard>
+            ))}
+          </View>
+          
+          {/* Card Indicators */}
+          <View style={styles.indicators}>
+            {features.map((_, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => setCurrentCardIndex(index)}
+                style={[
+                  styles.indicator,
+                  index === currentCardIndex && styles.indicatorActive,
+                  index < features.length - 1 && styles.indicatorSpacing,
+                ]}
+              />
             ))}
           </View>
         </View>
 
         {/* Footer Section */}
         <View style={styles.footerSection}>
-          <TouchableOpacity 
-            style={[styles.secondaryButton, isWeb && styles.webSecondaryButton]}
-            onPress={() => navigation.navigate('Login')}
-          >
-            <Text style={[styles.secondaryButtonText, isWeb && styles.webSecondaryButtonText]}>
-              Already have an account? Sign In
-            </Text>
-          </TouchableOpacity>
           <Text style={[styles.footerText, isWeb && styles.webFooterText]}>
             Start your parenting journey today
           </Text>
@@ -197,10 +229,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Platform.OS === 'web' ? 20 : 30,
+    paddingVertical: Platform.OS === 'web' ? 10 : 15,
     paddingHorizontal: 20,
     maxWidth: Platform.OS === 'web' ? 1200 : '100%',
-    gap: Platform.OS === 'web' ? 20 : 15,
+    gap: Platform.OS === 'web' ? 8 : 5,
     ...Platform.select({
       web: {
         margin: '0 auto',
@@ -222,7 +254,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
     flexShrink: 0,
     width: '100%',
     alignSelf: 'center',
@@ -236,18 +268,18 @@ const styles = StyleSheet.create({
     }),
   },
   logoContainer: {
-    marginBottom: 12,
+    marginBottom: 6,
   },
   logo: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   subtitle: {
-    fontSize: Platform.OS === 'web' ? 16 : 14,
+    fontSize: Platform.OS === 'web' ? 14 : 12,
     color: '#000000',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 18,
     maxWidth: 550,
     paddingHorizontal: 10,
   },
@@ -257,76 +289,91 @@ const styles = StyleSheet.create({
   },
   featuresContainer: {
     width: '100%',
-    marginVertical: 15,
+    marginVertical: 8,
     flexShrink: 1,
     alignSelf: 'center',
+    alignItems: 'center',
     ...Platform.select({
       web: {
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center',
         marginLeft: 'auto',
         marginRight: 'auto',
       },
     }),
   },
-  featuresGrid: {
-    flexDirection: 'row',
+  cardStack: {
+    position: 'relative',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'stretch',
-    width: '100%',
-    flexWrap: 'nowrap',
-    paddingHorizontal: Platform.OS === 'web' ? 20 : 10,
-    ...Platform.select({
-      web: {
-        display: 'flex',
-        margin: '0 auto',
-      },
-    }),
+    marginBottom: 10,
+  },
+  cardContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   featureCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    borderRadius: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  cardContent: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 160,
+  },
+  indicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     ...Platform.select({
       web: {
-        transition: 'all 0.3s ease-in-out',
-        ':hover': {
-          transform: 'translateY(-4px) scale(1.03)',
-          boxShadow: '0 12px 30px rgba(0, 0, 0, 0.18)',
-        },
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
       },
     }),
   },
+  indicatorSpacing: {
+    marginRight: 8,
+  },
+  indicatorActive: {
+    width: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
   featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#f7fafc',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   featureEmoji: {
-    fontSize: 20,
+    fontSize: 18,
   },
   featureTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: '#1a202c',
     textAlign: 'center',
-    marginBottom: 6,
-    lineHeight: 16,
+    marginBottom: 4,
+    lineHeight: 18,
   },
   featureDescription: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#718096',
     textAlign: 'center',
     lineHeight: 15,
@@ -335,7 +382,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     flexShrink: 0,
-    marginTop: 10,
+    marginTop: 4,
     alignSelf: 'center',
     ...Platform.select({
       web: {
@@ -348,10 +395,10 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: '#667eea',
-    paddingVertical: Platform.OS === 'web' ? 14 : 12,
-    paddingHorizontal: 32,
+    paddingVertical: Platform.OS === 'web' ? 10 : 10,
+    paddingHorizontal: 28,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 6,
     shadowColor: '#667eea',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -377,16 +424,17 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
   },
   webPrimaryButtonText: {
-    fontSize: 18,
+    fontSize: 15,
   },
   secondaryButton: {
-    paddingVertical: 8,
+    paddingVertical: 4,
     paddingHorizontal: 20,
+    marginBottom: 4,
     ...Platform.select({
       web: {
         cursor: 'pointer',
@@ -409,13 +457,13 @@ const styles = StyleSheet.create({
     WebkitTextFillColor: 'transparent',
   },
   footerText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#000000',
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 4,
   },
   webFooterText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#000000',
   },
 });
