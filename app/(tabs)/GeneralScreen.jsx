@@ -123,7 +123,7 @@ export default function GeneralScreen() {
           <Text style={styles.bondSectionTitle}>Age-Specific Bonding</Text>
           <View style={styles.ageGroup}>
             <View style={styles.ageHeader}>
-              <Ionicons name="baby-outline" size={16} color="#3A506B" />
+              <Ionicons name="happy-outline" size={16} color="#3A506B" />
               <Text style={styles.ageTitle}>Toddlers (1-3 years)</Text>
             </View>
             <Text style={styles.ageContent}>• Sensory play and exploration • Sing songs and nursery rhymes • Cuddle and physical affection</Text>

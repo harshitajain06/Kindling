@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -8,6 +9,18 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { generateDescriptiveTitle } from '../config/openai';
+
+// Function to get icon name based on parenting style
+const getStyleIcon = (style) => {
+  const iconMap = {
+    Authoritative: "heart-circle",
+    Authoritarian: "school",
+    Permissive: "heart",
+    Neglectful: "refresh-circle"
+  };
+  return iconMap[style] || "heart";
+};
 
 const styleDescriptions = {
   Authoritative: {
@@ -111,9 +124,31 @@ const styleDescriptions = {
   }
 };
 
-export default function ParentingStyleResults({ results, onRetake, onClose }) {
+export default function ParentingStyleResults({ results, onRetake, onClose, onViewAIAnalysis }) {
   const { dominantStyle, counts } = results;
   const styleInfo = styleDescriptions[dominantStyle];
+  const [descriptiveTitle, setDescriptiveTitle] = useState(null);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(true);
+
+  useEffect(() => {
+    const generateTitle = async () => {
+      if (!results) return;
+      
+      setIsGeneratingTitle(true);
+      try {
+        const title = await generateDescriptiveTitle(results);
+        setDescriptiveTitle(title);
+      } catch (error) {
+        console.error('Error generating descriptive title:', error);
+        // Use fallback from styleDescriptions
+        setDescriptiveTitle(styleInfo?.description || 'Your unique parenting approach');
+      } finally {
+        setIsGeneratingTitle(false);
+      }
+    };
+
+    generateTitle();
+  }, [results, styleInfo]);
 
   const getScoreBar = (style, count) => {
     const maxCount = Math.max(...Object.values(counts));
@@ -135,9 +170,27 @@ export default function ParentingStyleResults({ results, onRetake, onClose }) {
       <ScrollView style={styles.scrollContainer}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerEmoji}>{styleInfo.emoji}</Text>
-          <Text style={styles.headerTitle}>{styleInfo.title}</Text>
-          <Text style={styles.headerDescription}>{styleInfo.description}</Text>
+          <View style={styles.iconWrapper}>
+            <View style={[styles.iconOuterRing, { borderColor: `${styleInfo.color}40` }]}>
+              <View style={[styles.iconCircle, { backgroundColor: styleInfo.color }]}>
+                <Ionicons 
+                  name={getStyleIcon(dominantStyle)} 
+                  size={48} 
+                  color="#fff" 
+                />
+              </View>
+            </View>
+          </View>
+          {isGeneratingTitle ? (
+            <View style={styles.loadingTitleContainer}>
+              <ActivityIndicator size="small" color={styleInfo.color} />
+              <Text style={styles.loadingTitleText}>Generating your personalized description...</Text>
+            </View>
+          ) : (
+            <Text style={styles.headerTitle}>
+              {descriptiveTitle || styleInfo.description}
+            </Text>
+          )}
         </View>
 
         {/* Score Breakdown */}
@@ -181,6 +234,13 @@ export default function ParentingStyleResults({ results, onRetake, onClose }) {
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
+          {onViewAIAnalysis && (
+            <TouchableOpacity style={[styles.button, styles.aiAnalysisButton]} onPress={onViewAIAnalysis}>
+              <Ionicons name="analytics" size={20} color="#fff" />
+              <Text style={styles.buttonText}>Get AI Analysis</Text>
+            </TouchableOpacity>
+          )}
+          
           <TouchableOpacity style={[styles.button, styles.retakeButton]} onPress={onRetake}>
             <Ionicons name="refresh" size={20} color="#fff" />
             <Text style={styles.buttonText}>Retake Assessment</Text>
@@ -211,22 +271,54 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
   },
-  headerEmoji: {
-    fontSize: 60,
-    marginBottom: 10,
+  iconWrapper: {
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconOuterRing: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 10,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#2C3E50',
     marginBottom: 8,
     textAlign: 'center',
+    lineHeight: 28,
+    paddingHorizontal: 10,
   },
-  headerDescription: {
-    fontSize: 16,
+  loadingTitleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  loadingTitleText: {
+    fontSize: 14,
     color: '#6C757D',
+    marginTop: 8,
     textAlign: 'center',
-    lineHeight: 22,
   },
   section: {
     backgroundColor: '#fff',
@@ -291,7 +383,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     padding: 20,
     gap: 10,
   },
@@ -303,6 +395,9 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 12,
     gap: 8,
+  },
+  aiAnalysisButton: {
+    backgroundColor: '#9B59B6',
   },
   retakeButton: {
     backgroundColor: '#6C757D',

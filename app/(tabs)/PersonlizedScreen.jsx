@@ -2,9 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { ActivityIndicator, Alert, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AIParentingAnalysis from "../../components/AIParentingAnalysis";
 import ParentingStyleQuestionnaire from "../../components/ParentingStyleQuestionnaire";
 import ParentingStyleResults from "../../components/ParentingStyleResults";
 import { auth } from '../../config/firebase';
+import { generateEncouragingQuote } from '../../config/openai';
 import { getAssessmentResults, getChallengeProgress, saveAssessmentResults, saveChallengeProgress } from "../../services/assessmentService";
 
 // Function to get personalized suggestions based on parenting style
@@ -163,7 +165,7 @@ const getDetailedAnalysis = (dominantStyle, counts) => {
         icon: "trending-up",
         color: "#27AE60",
         title: "Balanced Approach",
-        description: `You scored ${dominantCount}/10 in the Authoritative style, showing a strong balance between structure and warmth. This approach typically leads to confident, well-adjusted children.`,
+        description: `Your responses show a strong balance between structure and warmth. This approach typically leads to confident, well-adjusted children.`,
         percentage: dominantPercentage
       },
       {
@@ -186,7 +188,7 @@ const getDetailedAnalysis = (dominantStyle, counts) => {
         icon: "school",
         color: "#E74C3C",
         title: "High Standards",
-        description: `You scored ${dominantCount}/10 in the Authoritarian style, indicating strong emphasis on discipline and respect. Your children likely perform well academically.`,
+        description: `Your responses indicate strong emphasis on discipline and respect. Your children likely perform well academically.`,
         percentage: dominantPercentage
       },
       {
@@ -209,7 +211,7 @@ const getDetailedAnalysis = (dominantStyle, counts) => {
         icon: "happy",
         color: "#F39C12",
         title: "Child-Centered",
-        description: `You scored ${dominantCount}/10 in the Permissive style, showing high warmth and acceptance. Your children likely feel very loved and supported.`,
+        description: `Your responses show high warmth and acceptance. Your children likely feel very loved and supported.`,
         percentage: dominantPercentage
       },
       {
@@ -232,7 +234,7 @@ const getDetailedAnalysis = (dominantStyle, counts) => {
         icon: "refresh",
         color: "#95A5A6",
         title: "Growth Opportunity",
-        description: `You scored ${dominantCount}/10 in the Neglectful style. This indicates an opportunity for positive change and increased involvement.`,
+        description: `Your assessment results indicate an opportunity for positive change and increased involvement. Every step forward matters.`,
         percentage: dominantPercentage
       },
       {
@@ -626,11 +628,13 @@ const showAlert = (title, message, buttons = [{ text: "OK" }]) => {
 
 export default function PersonlizedScreen() {
   const [user, loading, error] = useAuthState(auth);
-  const [currentScreen, setCurrentScreen] = useState('home'); // 'home', 'questionnaire', 'results'
+  const [currentScreen, setCurrentScreen] = useState('home'); // 'home', 'questionnaire', 'results', 'ai-analysis'
   const [questionnaireResults, setQuestionnaireResults] = useState(null);
   const [hasCompletedAssessment, setHasCompletedAssessment] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSavingData, setIsSavingData] = useState(false);
+  const [encouragingQuote, setEncouragingQuote] = useState(null);
+  const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
   const [challengeProgress, setChallengeProgress] = useState({});
   const [activeChallenge, setActiveChallenge] = useState(null);
   const [showChallengeModal, setShowChallengeModal] = useState(false);
@@ -649,6 +653,23 @@ export default function PersonlizedScreen() {
           if (existingResults) {
             setQuestionnaireResults(existingResults);
             setHasCompletedAssessment(true);
+            // Load existing quote if available, otherwise generate a new one
+            if (existingResults.encouragingQuote) {
+              setEncouragingQuote(existingResults.encouragingQuote);
+            } else {
+              // Generate quote if it doesn't exist
+              setIsGeneratingQuote(true);
+              try {
+                const quote = await generateEncouragingQuote(existingResults);
+                setEncouragingQuote(quote);
+              } catch (error) {
+                console.error('Error generating quote:', error);
+                const fallbackQuote = "Your commitment to your child's growth shines through in your thoughtful responses. Every day brings new opportunities to nurture their development with love and understanding.";
+                setEncouragingQuote(fallbackQuote);
+              } finally {
+                setIsGeneratingQuote(false);
+              }
+            }
           }
           
           // Load challenge progress data
@@ -677,6 +698,23 @@ export default function PersonlizedScreen() {
     setHasCompletedAssessment(true);
     setCurrentScreen('results');
     
+    // Generate encouraging quote
+    setIsGeneratingQuote(true);
+    try {
+      const quote = await generateEncouragingQuote(results);
+      setEncouragingQuote(quote);
+      // Save quote along with results
+      results.encouragingQuote = quote;
+    } catch (error) {
+      console.error('Error generating quote:', error);
+      // Use fallback quote if generation fails
+      const fallbackQuote = "Your commitment to your child's growth shines through in your thoughtful responses. Every day brings new opportunities to nurture their development with love and understanding.";
+      setEncouragingQuote(fallbackQuote);
+      results.encouragingQuote = fallbackQuote;
+    } finally {
+      setIsGeneratingQuote(false);
+    }
+    
     // Save to Firebase
     if (user) {
       setIsSavingData(true);
@@ -698,6 +736,34 @@ export default function PersonlizedScreen() {
 
   const handleCloseResults = () => {
     setCurrentScreen('home');
+  };
+
+  const handleViewAIAnalysis = () => {
+    setCurrentScreen('ai-analysis');
+  };
+
+  const handleBackFromAnalysis = () => {
+    setCurrentScreen('results');
+  };
+
+  const handleRetakeFromAnalysis = () => {
+    setCurrentScreen('questionnaire');
+  };
+
+  const handleSaveAnalysis = async (analysis) => {
+    if (user) {
+      try {
+        // Save the AI analysis to Firebase
+        await saveAssessmentResults(user.uid, {
+          ...questionnaireResults,
+          aiAnalysis: analysis
+        });
+        console.log('AI analysis saved to Firebase');
+      } catch (error) {
+        console.error('Error saving AI analysis:', error);
+        Alert.alert('Warning', 'Analysis generated but failed to save. You can still view it.');
+      }
+    }
   };
 
   // Helper function to save challenge progress to Firebase
@@ -2941,6 +3007,18 @@ Your child deserves your best effort, and you deserve the support you need to gi
         results={questionnaireResults}
         onRetake={handleRetakeQuestionnaire}
         onClose={handleCloseResults}
+        onViewAIAnalysis={handleViewAIAnalysis}
+      />
+    );
+  }
+
+  if (currentScreen === 'ai-analysis') {
+    return (
+      <AIParentingAnalysis
+        questionnaireResults={questionnaireResults}
+        onBack={handleBackFromAnalysis}
+        onRetake={handleRetakeFromAnalysis}
+        onSave={handleSaveAnalysis}
       />
     );
   }
@@ -2971,8 +3049,13 @@ Your child deserves your best effort, and you deserve the support you need to gi
                 )}
               </View>
               <Text style={styles.resultsDescription}>
-                You are an <Text style={styles.highlightText}>{questionnaireResults?.dominantStyle}</Text> parent. 
-                View your detailed results and personalized recommendations below.
+                {isGeneratingQuote ? (
+                  "Generating your personalized message..."
+                ) : encouragingQuote ? (
+                  <Text style={styles.quoteText}>{encouragingQuote}</Text>
+                ) : (
+                  "View your detailed results and personalized recommendations below."
+                )}
         </Text>
               {questionnaireResults?.completedAt && (
                 <Text style={styles.completedDate}>
@@ -2987,6 +3070,11 @@ Your child deserves your best effort, and you deserve the support you need to gi
               <TouchableOpacity style={styles.viewResultsButton} onPress={() => setCurrentScreen('results')}>
                 <Ionicons name="eye" size={24} color="#fff" />
                 <Text style={styles.buttonText}>View Detailed Results</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.aiAnalysisMainButton} onPress={handleViewAIAnalysis}>
+                <Ionicons name="analytics" size={24} color="#fff" />
+                <Text style={styles.buttonText}>Get AI Analysis</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.retakeButton} onPress={handleStartQuestionnaire}>
@@ -3011,7 +3099,7 @@ Your child deserves your best effort, and you deserve the support you need to gi
 
             {/* Quick Actions for Your Style */}
             <View style={styles.quickActionsBox}>
-              <Text style={styles.sectionTitle}>Quick Actions for {questionnaireResults?.dominantStyle} Parents</Text>
+              <Text style={styles.sectionTitle}>Quick Actions for You</Text>
               <View style={styles.quickActionsGrid}>
                 {getQuickActions(questionnaireResults?.dominantStyle).map((action, index) => (
                   <TouchableOpacity key={index} style={styles.quickActionItem}>
@@ -3186,7 +3274,7 @@ Your child deserves your best effort, and you deserve the support you need to gi
             {/* Community Insights */}
             <View style={styles.communityBox}>
               <Text style={styles.sectionTitle}>Community Insights</Text>
-              <Text style={styles.communitySubtitle}>What other {questionnaireResults?.dominantStyle} parents are saying</Text>
+              <Text style={styles.communitySubtitle}>What other parents are saying</Text>
               {getCommunityInsights(questionnaireResults?.dominantStyle).map((insight, index) => (
                 <View key={index} style={styles.insightItem}>
                   <View style={styles.insightHeader}>
@@ -3216,7 +3304,7 @@ Your child deserves your best effort, and you deserve the support you need to gi
             {/* Resources Library */}
             <View style={styles.resourcesBox}>
               <Text style={styles.sectionTitle}>Recommended Resources</Text>
-              <Text style={styles.resourcesSubtitle}>Curated content for {questionnaireResults?.dominantStyle} parents</Text>
+              <Text style={styles.resourcesSubtitle}>Curated content for you</Text>
               {getRecommendedResources(questionnaireResults?.dominantStyle).map((resource, index) => (
                 <TouchableOpacity 
                   key={index} 
@@ -3754,6 +3842,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: "#27AE60",
   },
+  quoteText: {
+    fontSize: 16,
+    color: "#2C3E50",
+    lineHeight: 24,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
   actionButtonsBox: {
     width: "90%",
     marginVertical: 15,
@@ -3761,6 +3856,15 @@ const styles = StyleSheet.create({
   },
   viewResultsButton: {
     backgroundColor: "#3498DB",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  aiAnalysisMainButton: {
+    backgroundColor: "#9B59B6",
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

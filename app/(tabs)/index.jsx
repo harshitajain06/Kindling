@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   },
   webContainer: {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    backgroundColor: '#667eea',
   },
   scrollContent: {
     flexGrow: 1,
@@ -420,10 +420,7 @@ const styles = StyleSheet.create({
     }),
   },
   webButton: {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    ':hover': {
-      background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-    },
+    backgroundColor: '#667eea',
   },
   buttonDisabled: {
     backgroundColor: '#a0aec0',
@@ -457,10 +454,6 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         cursor: 'pointer',
-        textDecoration: 'none',
-        ':hover': {
-          textDecoration: 'underline',
-        },
       },
     }),
   },

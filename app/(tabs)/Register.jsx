@@ -498,10 +498,6 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         cursor: 'pointer',
-        textDecoration: 'none',
-        ':hover': {
-          textDecoration: 'underline',
-        },
       },
     }),
   },

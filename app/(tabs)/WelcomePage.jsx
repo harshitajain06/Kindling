@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Dimensions,
   Image,
@@ -10,6 +10,58 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  withDelay,
+  Easing,
+} from 'react-native-reanimated';
+
+const AnimatedCard = ({ children, delay = 0, index, cardWidth, isFirst, isLast }) => {
+  const opacity = useSharedValue(0);
+  const translateX = useSharedValue(30);
+
+  useEffect(() => {
+    opacity.value = withDelay(
+      delay,
+      withTiming(1, {
+        duration: 500,
+        easing: Easing.out(Easing.ease),
+      })
+    );
+    translateX.value = withDelay(
+      delay,
+      withTiming(0, {
+        duration: 500,
+        easing: Easing.out(Easing.ease),
+      })
+    );
+  }, [delay, opacity, translateX]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+      transform: [{ translateX: translateX.value }],
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        animatedStyle,
+        styles.featureCard,
+        { 
+          width: cardWidth,
+          marginLeft: isFirst ? 0 : 6,
+          marginRight: isLast ? 0 : 6,
+        },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+};
 
 const WelcomePage = () => {
   const navigation = useNavigation();
@@ -18,14 +70,45 @@ const WelcomePage = () => {
   const isWeb = Platform.OS === 'web';
   const isTablet = width > 768;
 
+  const features = [
+    {
+      emoji: '🎯',
+      title: 'Personalized Assessment',
+      description: 'Take our comprehensive parenting style assessment to discover your unique approach.',
+    },
+    {
+      emoji: '📚',
+      title: 'Expert Insights',
+      description: 'Access evidence-based parenting strategies tailored to your family\'s needs.',
+    },
+    {
+      emoji: '👥',
+      title: 'Community Support',
+      description: 'Connect with other parents and share experiences in a supportive environment.',
+    },
+    {
+      emoji: '📊',
+      title: 'Progress Tracking',
+      description: 'Monitor your parenting journey with detailed insights and progress reports.',
+    },
+    {
+      emoji: '🎨',
+      title: 'Personalized Content',
+      description: 'Get customized recommendations and content based on your family\'s unique needs.',
+    },
+  ];
+
+  // Calculate card width to fit all 5 cards on one screen
+  const horizontalPadding = Platform.OS === 'web' ? 40 : 20;
+  const gridPadding = Platform.OS === 'web' ? 20 : 10;
+  const totalSpacing = 12 * 4; // 4 gaps between 5 cards (6px margin on each side = 12px between cards)
+  const availableWidth = width - (horizontalPadding * 2) - (gridPadding * 2);
+  const cardWidth = Math.floor((availableWidth - totalSpacing) / 5);
+  const cardSpacing = 12;
+
   return (
-    <ScrollView 
-      style={[styles.container, isWeb && styles.webContainer]} 
-      contentContainerStyle={[styles.scrollContent, isWeb && styles.webScrollContent]}
-      showsVerticalScrollIndicator={true}
-      bounces={false}
-    >
-      <View style={[styles.content, isTablet && styles.tabletContent]}>
+    <View style={[styles.container, isWeb && styles.webContainer]}>
+      <View style={[styles.content, isTablet && styles.tabletContent, isWeb && styles.webContent]}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <View style={styles.logoContainer}>
@@ -37,13 +120,9 @@ const WelcomePage = () => {
             onPress={() => navigation.navigate('Login')}
           >
             <Text style={[styles.primaryButtonText, isWeb && styles.webPrimaryButtonText]}>
-              Get Started
+              Get Started with Kindling
             </Text>
           </TouchableOpacity>
-          
-          <Text style={[styles.title, isWeb && styles.webTitle]}>
-            Welcome to Kindling
-          </Text>
           
           <Text style={[styles.subtitle, isWeb && styles.webSubtitle]}>
             Your personalized parenting companion. Discover your unique parenting style, 
@@ -51,61 +130,32 @@ const WelcomePage = () => {
           </Text>
         </View>
 
-        {/* Features Section */}
-        <View style={[styles.featuresSection, isWeb && styles.webFeaturesSection]}>
-          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureEmoji}>🎯</Text>
-            </View>
-            <Text style={styles.featureTitle}>Personalized Assessment</Text>
-            <Text style={styles.featureDescription}>
-              Take our comprehensive parenting style assessment to discover your unique approach.
-            </Text>
-          </View>
-
-          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureEmoji}>📚</Text>
-            </View>
-            <Text style={styles.featureTitle}>Expert Insights</Text>
-            <Text style={styles.featureDescription}>
-              Access evidence-based parenting strategies tailored to your family's needs.
-            </Text>
-          </View>
-
-          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureEmoji}>👥</Text>
-            </View>
-            <Text style={styles.featureTitle}>Community Support</Text>
-            <Text style={styles.featureDescription}>
-              Connect with other parents and share experiences in a supportive environment.
-            </Text>
-          </View>
-
-          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureEmoji}>📊</Text>
-            </View>
-            <Text style={styles.featureTitle}>Progress Tracking</Text>
-            <Text style={styles.featureDescription}>
-              Monitor your parenting journey with detailed insights and progress reports.
-            </Text>
-          </View>
-
-          <View style={[styles.featureCard, isWeb && styles.webFeatureCard]}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureEmoji}>🎨</Text>
-            </View>
-            <Text style={styles.featureTitle}>Personalized Content</Text>
-            <Text style={styles.featureDescription}>
-              Get customized recommendations and content based on your family's unique needs.
-            </Text>
+        {/* Features Section - All cards visible */}
+        <View style={styles.featuresContainer}>
+          <View style={styles.featuresGrid}>
+            {features.map((feature, index) => (
+              <AnimatedCard 
+                key={index} 
+                delay={index * 100} 
+                index={index}
+                cardWidth={cardWidth}
+                isFirst={index === 0}
+                isLast={index === features.length - 1}
+              >
+                <View style={styles.featureIcon}>
+                  <Text style={styles.featureEmoji}>{feature.emoji}</Text>
+                </View>
+                <Text style={styles.featureTitle} numberOfLines={2}>{feature.title}</Text>
+                <Text style={styles.featureDescription} numberOfLines={3}>
+                  {feature.description}
+                </Text>
+              </AnimatedCard>
+            ))}
           </View>
         </View>
 
-        {/* CTA Section */}
-        <View style={styles.ctaSection}>
+        {/* Footer Section */}
+        <View style={styles.footerSection}>
           <TouchableOpacity 
             style={[styles.secondaryButton, isWeb && styles.webSecondaryButton]}
             onPress={() => navigation.navigate('Login')}
@@ -114,16 +164,12 @@ const WelcomePage = () => {
               Already have an account? Sign In
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
           <Text style={[styles.footerText, isWeb && styles.webFooterText]}>
             Start your parenting journey today
           </Text>
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -131,122 +177,133 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   webContainer: {
     height: '100vh',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    overflow: 'auto',
+    justifyContent: 'center',
+    alignItems: 'center',
     ...Platform.select({
       web: {
-        '::-webkit-scrollbar': {
-          width: '8px',
-        },
-        '::-webkit-scrollbar-track': {
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '4px',
-        },
-        '::-webkit-scrollbar-thumb': {
-          background: 'rgba(255, 255, 255, 0.3)',
-          borderRadius: '4px',
-        },
-        '::-webkit-scrollbar-thumb:hover': {
-          background: 'rgba(255, 255, 255, 0.5)',
-        },
+        display: 'flex',
+        minHeight: '100vh',
       },
     }),
   },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 40,
-  },
-  webScrollContent: {
-    paddingVertical: 20,
-    minHeight: '100vh',
-    justifyContent: 'center',
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
   content: {
     width: '100%',
-    maxWidth: 800,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: Platform.OS === 'web' ? 20 : 30,
+    paddingHorizontal: 20,
+    maxWidth: Platform.OS === 'web' ? 1200 : '100%',
+    gap: Platform.OS === 'web' ? 20 : 15,
+    ...Platform.select({
+      web: {
+        margin: '0 auto',
+        display: 'flex',
+        position: 'relative',
+      },
+    }),
   },
   tabletContent: {
-    maxWidth: 1000,
+    maxWidth: 1400,
+  },
+  webContent: {
+    ...Platform.select({
+      web: {
+        alignSelf: 'center',
+        margin: '0 auto',
+      },
+    }),
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
+    flexShrink: 0,
+    width: '100%',
+    alignSelf: 'center',
+    ...Platform.select({
+      web: {
+        display: 'flex',
+        flexDirection: 'column',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+      },
+    }),
   },
   logoContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1a202c',
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 38,
-  },
-  webTitle: {
-    fontSize: 36,
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#4a5568',
+    fontSize: Platform.OS === 'web' ? 16 : 14,
+    color: '#000000',
     textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: 600,
+    lineHeight: 22,
+    maxWidth: 550,
+    paddingHorizontal: 10,
   },
   webSubtitle: {
-    fontSize: 18,
-    color: '#2d3748',
+    fontSize: 16,
+    color: '#000000',
   },
-  featuresSection: {
+  featuresContainer: {
     width: '100%',
-    marginBottom: 30,
+    marginVertical: 15,
+    flexShrink: 1,
+    alignSelf: 'center',
+    ...Platform.select({
+      web: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+      },
+    }),
   },
-  webFeaturesSection: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '12px',
-    marginBottom: 20,
+  featuresGrid: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    width: '100%',
+    flexWrap: 'nowrap',
+    paddingHorizontal: Platform.OS === 'web' ? 20 : 10,
+    ...Platform.select({
+      web: {
+        display: 'flex',
+        margin: '0 auto',
+      },
+    }),
   },
   featureCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: 10,
     alignItems: 'center',
+    justifyContent: 'flex-start',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
     ...Platform.select({
       web: {
-        transition: 'all 0.2s ease-in-out',
+        transition: 'all 0.3s ease-in-out',
         ':hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+          transform: 'translateY(-4px) scale(1.03)',
+          boxShadow: '0 12px 30px rgba(0, 0, 0, 0.18)',
         },
       },
     }),
-  },
-  webFeatureCard: {
-    marginBottom: 0,
   },
   featureIcon: {
     width: 40,
@@ -261,34 +318,45 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   featureTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '700',
     color: '#1a202c',
     textAlign: 'center',
     marginBottom: 6,
+    lineHeight: 16,
   },
   featureDescription: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#718096',
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 15,
   },
-  ctaSection: {
+  footerSection: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 20,
+    flexShrink: 0,
+    marginTop: 10,
+    alignSelf: 'center',
+    ...Platform.select({
+      web: {
+        display: 'flex',
+        flexDirection: 'column',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+      },
+    }),
   },
   primaryButton: {
     backgroundColor: '#667eea',
-    paddingVertical: 12,
+    paddingVertical: Platform.OS === 'web' ? 14 : 12,
     paddingHorizontal: 32,
     borderRadius: 10,
-    marginBottom: 12,
+    marginBottom: 10,
     shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 10,
+    elevation: 6,
     ...Platform.select({
       web: {
         cursor: 'pointer',
@@ -322,17 +390,11 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         cursor: 'pointer',
-        transition: 'all 0.2s ease-in-out',
-        ':hover': {
-          transform: 'translateY(-1px)',
-        },
       },
     }),
   },
   webSecondaryButton: {
-    ':hover': {
-      textDecoration: 'underline',
-    },
+    // Web-specific hover styles should be handled via onMouseEnter/onMouseLeave if needed
   },
   secondaryButtonText: {
     color: '#667eea',
@@ -346,17 +408,15 @@ const styles = StyleSheet.create({
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   },
-  footer: {
-    alignItems: 'center',
-  },
   footerText: {
-    fontSize: 14,
-    color: '#a0aec0',
+    fontSize: 13,
+    color: '#000000',
     textAlign: 'center',
+    marginTop: 12,
   },
   webFooterText: {
-    fontSize: 16,
-    color: '#718096',
+    fontSize: 14,
+    color: '#000000',
   },
 });
 
