@@ -21,10 +21,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 const StackedCard = ({ children, isVisible, index, totalCards, cardWidth }) => {
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.8);
-  const translateY = useSharedValue(50);
-  const zIndex = useSharedValue(totalCards - index);
+  const opacity = useSharedValue(isVisible ? 1 : 0.3);
+  const scale = useSharedValue(isVisible ? 1 : 0.95);
+  const translateY = useSharedValue(isVisible ? 0 : 30);
+  const zIndex = useSharedValue(isVisible ? 100 : totalCards - index);
 
   useEffect(() => {
     if (isVisible) {
@@ -50,6 +50,10 @@ const StackedCard = ({ children, isVisible, index, totalCards, cardWidth }) => {
         duration: 400,
         easing: Easing.in(Easing.ease),
       });
+      translateY.value = withTiming(30, {
+        duration: 400,
+        easing: Easing.in(Easing.ease),
+      });
       zIndex.value = withTiming(totalCards - index, { duration: 0 });
     }
   }, [isVisible, index, totalCards, opacity, scale, translateY, zIndex]);
@@ -64,7 +68,7 @@ const StackedCard = ({ children, isVisible, index, totalCards, cardWidth }) => {
       ],
       zIndex: zIndex.value,
     };
-  });
+  }, [totalCards, index]);
 
   return (
     <Animated.View
@@ -75,6 +79,7 @@ const StackedCard = ({ children, isVisible, index, totalCards, cardWidth }) => {
         {
           width: cardWidth,
           position: 'absolute',
+          alignSelf: 'center',
         },
       ]}
     >
@@ -307,10 +312,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
+    minHeight: 180,
   },
   cardContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    top: 0,
+    alignSelf: 'center',
   },
   featureCard: {
     backgroundColor: '#ffffff',
