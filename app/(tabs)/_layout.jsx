@@ -9,6 +9,7 @@ import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-na
 import { auth } from '../../config/firebase';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
+import FloatingChatIcon from '../../components/FloatingChatIcon';
 
 // Import actual screens from the project
 import GeneralScreen from './GeneralScreen';
@@ -16,6 +17,21 @@ import Login from './index';
 import PersonlizedScreen from './PersonlizedScreen';
 import Register from './Register';
 import WelcomePage from './WelcomePage';
+import MoodSwingChat from './MoodSwingChat';
+import WorthBeyondChat from './WorthBeyondChat';
+import BurnoutBoardsChat from './BurnoutBoardsChat';
+import CareerMazeChat from './CareerMazeChat';
+import ScrollPatrolChat from './ScrollPatrolChat';
+import OnlineNotAloneChat from './OnlineNotAloneChat';
+import DigitalFootprintsChat from './DigitalFootprintsChat';
+import MilesApartChat from './MilesApartChat';
+import TwoHomesChat from './TwoHomesChat';
+import BackInOurDayChat from './BackInOurDayChat';
+import NoVillageChat from './NoVillageChat';
+import FriendsFomoChat from './FriendsFomoChat';
+import BulliesBoundariesChat from './BulliesBoundariesChat';
+import LetsTalkChat from './LetsTalkChat';
+import GuidanceGroundRulesChat from './GuidanceGroundRulesChat';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -52,35 +68,171 @@ const BottomTabs = () => {
   const colorScheme = useColorScheme();
 
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          tabBarInactiveTintColor: 'gray',
+          tabBarStyle: {
+            backgroundColor: Colors[colorScheme ?? 'light'].background,
+          },
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName;
+
+            if (route.name === 'General') {
+              iconName = focused ? 'grid' : 'grid-outline';
+            } else if (route.name === 'Personalized') {
+              iconName = focused ? 'person' : 'person-outline';
+            }
+
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+        })}
+      >
+        <Tab.Screen name="General" component={GeneralStack} />
+        <Tab.Screen name="Personalized" component={PersonalizedStack} />
+      </Tab.Navigator>
+      <FloatingChatIcon />
+    </View>
+  );
+};
+
+// Main App Stack (includes Drawer and Chat screens)
+const MainAppStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
-          backgroundColor: Colors[colorScheme ?? 'light'].background,
-        },
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          if (route.name === 'General') {
-            iconName = focused ? 'grid' : 'grid-outline';
-          } else if (route.name === 'Personalized') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
+      }}
     >
-      <Tab.Screen name="General" component={GeneralStack} />
-      <Tab.Screen name="Personalized" component={PersonalizedStack} />
-    </Tab.Navigator>
+      <Stack.Screen name="DrawerContent" component={DrawerNavigatorContent} />
+      <Stack.Screen 
+        name="MoodSwingChat" 
+        component={MoodSwingChat}
+        options={{ 
+          headerShown: true,
+          title: 'Mood Swing Central',
+        }}
+      />
+      <Stack.Screen 
+        name="WorthBeyondChat" 
+        component={WorthBeyondChat}
+        options={{ 
+          headerShown: true,
+          title: 'Worth Beyond Comparison',
+        }}
+      />
+      <Stack.Screen 
+        name="BurnoutBoardsChat" 
+        component={BurnoutBoardsChat}
+        options={{ 
+          headerShown: true,
+          title: 'Burnout Before Boards',
+        }}
+      />
+      <Stack.Screen 
+        name="CareerMazeChat" 
+        component={CareerMazeChat}
+        options={{ 
+          headerShown: true,
+          title: 'Career Maze',
+        }}
+      />
+      <Stack.Screen 
+        name="ScrollPatrolChat" 
+        component={ScrollPatrolChat}
+        options={{ 
+          headerShown: true,
+          title: 'Scroll Patrol',
+        }}
+      />
+      <Stack.Screen 
+        name="OnlineNotAloneChat" 
+        component={OnlineNotAloneChat}
+        options={{ 
+          headerShown: true,
+          title: 'Online, Not Alone?',
+        }}
+      />
+      <Stack.Screen 
+        name="DigitalFootprintsChat" 
+        component={DigitalFootprintsChat}
+        options={{ 
+          headerShown: true,
+          title: 'Digital Footprints',
+        }}
+      />
+      <Stack.Screen 
+        name="MilesApartChat" 
+        component={MilesApartChat}
+        options={{ 
+          headerShown: true,
+          title: 'Miles Apart, Hearts Connected',
+        }}
+      />
+      <Stack.Screen 
+        name="TwoHomesChat" 
+        component={TwoHomesChat}
+        options={{ 
+          headerShown: true,
+          title: 'Two Homes, One Teen',
+        }}
+      />
+      <Stack.Screen 
+        name="BackInOurDayChat" 
+        component={BackInOurDayChat}
+        options={{ 
+          headerShown: true,
+          title: 'Back in Our Day…',
+        }}
+      />
+      <Stack.Screen 
+        name="NoVillageChat" 
+        component={NoVillageChat}
+        options={{ 
+          headerShown: true,
+          title: 'Raising Kids Without a Village',
+        }}
+      />
+      <Stack.Screen 
+        name="FriendsFomoChat" 
+        component={FriendsFomoChat}
+        options={{ 
+          headerShown: true,
+          title: 'Friends, Fallouts & FOMO',
+        }}
+      />
+      <Stack.Screen 
+        name="BulliesBoundariesChat" 
+        component={BulliesBoundariesChat}
+        options={{ 
+          headerShown: true,
+          title: 'Bullies, Banter & Boundaries',
+        }}
+      />
+      <Stack.Screen 
+        name="LetsTalkChat" 
+        component={LetsTalkChat}
+        options={{ 
+          headerShown: true,
+          title: "Let's Talk (No Panic Mode)",
+        }}
+      />
+      <Stack.Screen 
+        name="GuidanceGroundRulesChat" 
+        component={GuidanceGroundRulesChat}
+        options={{ 
+          headerShown: true,
+          title: 'Guidance Over Ground Rules',
+        }}
+      />
+    </Stack.Navigator>
   );
 };
 
 // Drawer Navigator Component
-const DrawerNavigator = () => {
+const DrawerNavigatorContent = () => {
   const navigation = useNavigation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -192,8 +344,8 @@ export default function StackLayout() {
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Register" component={Register} />
 
-      {/* Main App with Drawer */}
-      <Stack.Screen name="Drawer" component={DrawerNavigator} />
+      {/* Main App with Drawer and Chat Screens */}
+      <Stack.Screen name="Drawer" component={MainAppStack} />
     </Stack.Navigator>
   );
 }
