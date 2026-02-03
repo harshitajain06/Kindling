@@ -146,24 +146,35 @@ export const getAssessmentStats = async () => {
         Authoritative: 0,
         Authoritarian: 0,
         Permissive: 0,
-        Neglectful: 0
+        Neglectful: 0,
+        Uninvolved: 0,
+        Mixed: 0
       },
       averageScores: {
         Authoritative: 0,
         Authoritarian: 0,
         Permissive: 0,
-        Neglectful: 0
+        Neglectful: 0,
+        Uninvolved: 0
       }
     };
 
     assessments.forEach(assessment => {
       if (assessment.dominantStyle) {
-        stats.styleDistribution[assessment.dominantStyle]++;
+        // Handle both old and new style names
+        const styleKey = assessment.dominantStyle === 'Uninvolved' ? 'Neglectful' : assessment.dominantStyle;
+        if (stats.styleDistribution.hasOwnProperty(styleKey) || stats.styleDistribution.hasOwnProperty(assessment.dominantStyle)) {
+          stats.styleDistribution[assessment.dominantStyle] = (stats.styleDistribution[assessment.dominantStyle] || 0) + 1;
+        }
       }
       
-      if (assessment.counts) {
+      // Handle both old format (counts) and new format (scores)
+      const scoreData = assessment.scores || assessment.counts;
+      if (scoreData) {
         Object.keys(stats.averageScores).forEach(style => {
-          stats.averageScores[style] += assessment.counts[style] || 0;
+          // Map Uninvolved to Neglectful for backward compatibility
+          const sourceStyle = style === 'Neglectful' ? (scoreData.Uninvolved !== undefined ? 'Uninvolved' : style) : style;
+          stats.averageScores[style] += scoreData[sourceStyle] || 0;
         });
       }
     });

@@ -21,15 +21,40 @@ export default function AIParentingAnalysis({
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [isSavedAnalysis, setIsSavedAnalysis] = useState(false);
+  const [savedAt, setSavedAt] = useState(null);
 
   useEffect(() => {
-    generateAnalysis();
+    loadAnalysis();
   }, []);
+
+  const loadAnalysis = async () => {
+    // Check if there's a saved analysis first
+    if (questionnaireResults?.aiAnalysis) {
+      try {
+        setLoading(true);
+        setAnalysis(questionnaireResults.aiAnalysis);
+        setIsSavedAnalysis(true);
+        setSavedAt(questionnaireResults.aiAnalysis.savedAt || null);
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.error('Error loading saved analysis:', err);
+        // Fall through to generate new analysis
+      }
+    }
+    
+    // No saved analysis, generate a new one
+    generateAnalysis();
+  };
 
   const generateAnalysis = async () => {
     try {
       setLoading(true);
       setError(null);
+      setIsSavedAnalysis(false);
+      setSavedAt(null);
       
       // Try to generate AI analysis, fallback to basic analysis if API fails
       let analysisData;
@@ -49,15 +74,46 @@ export default function AIParentingAnalysis({
     }
   };
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave(analysis);
+  const handleSave = async () => {
+    if (!analysis) {
+      Alert.alert('Error', 'No analysis available to save.');
+      return;
     }
-    Alert.alert(
-      'Analysis Saved',
-      'Your parenting analysis has been saved to your profile.',
-      [{ text: 'OK' }]
-    );
+
+    if (!onSave) {
+      Alert.alert('Error', 'Save functionality is not available.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const result = await onSave(analysis);
+      if (result && result.success === false) {
+        Alert.alert(
+          'Save Failed',
+          result.message || 'Failed to save analysis. Please try again.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        // Update state to reflect that it's now saved
+        setIsSavedAnalysis(true);
+        setSavedAt(new Date().toISOString());
+        Alert.alert(
+          'Analysis Saved',
+          'Your parenting analysis has been saved to your profile.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (err) {
+      console.error('Error saving analysis:', err);
+      Alert.alert(
+        'Save Failed',
+        'An error occurred while saving. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleRetry = () => {
@@ -108,7 +164,6 @@ export default function AIParentingAnalysis({
     );
   }
 
-  const { dominantStyle, counts } = questionnaireResults;
   const isFallback = analysis.isFallback;
 
   return (
@@ -133,32 +188,6 @@ export default function AIParentingAnalysis({
           )}
         </View>
 
-        {/* Results Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Parenting Style Results</Text>
-          <View style={styles.resultsSummary}>
-            <Text style={styles.dominantStyle}>{dominantStyle}</Text>
-            <View style={styles.scoreBreakdown}>
-              {Object.entries(counts).map(([style, count]) => (
-                <View key={style} style={styles.scoreItem}>
-                  <Text style={styles.scoreLabel}>{style}</Text>
-                  <View style={styles.scoreBarContainer}>
-                    <View 
-                      style={[
-                        styles.scoreBar, 
-                        { 
-                          width: `${(count / 10) * 100}%`,
-                          backgroundColor: getStyleColor(style)
-                        }
-                      ]} 
-                    />
-                  </View>
-                  <Text style={styles.scoreValue}>{count}/10</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
 
         {/* Overall Assessment */}
         {analysis.overallAssessment && (
@@ -231,12 +260,50 @@ export default function AIParentingAnalysis({
           </View>
         )}
 
+        {/* Saved Analysis Indicator */}
+        {isSavedAnalysis && savedAt && (
+          <View style={styles.savedBanner}>
+            <Ionicons name="checkmark-circle" size={20} color="#27AE60" />
+            <Text style={styles.savedText}>
+              Saved on {new Date(savedAt).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </Text>
+          </View>
+        )}
+
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Ionicons name="save" size={20} color="#fff" />
-            <Text style={styles.buttonText}>Save Analysis</Text>
-          </TouchableOpacity>
+          {!isSavedAnalysis && (
+            <TouchableOpacity 
+              style={[styles.saveButton, saving && styles.buttonDisabled]} 
+              onPress={handleSave}
+              disabled={saving || !analysis}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="save" size={20} color="#fff" />
+              )}
+              <Text style={styles.buttonText}>
+                {saving ? 'Saving...' : 'Save Analysis'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          
+          {isSavedAnalysis && (
+            <TouchableOpacity 
+              style={styles.regenerateButton} 
+              onPress={generateAnalysis}
+            >
+              <Ionicons name="refresh" size={20} color="#fff" />
+              <Text style={styles.buttonText}>Regenerate Analysis</Text>
+            </TouchableOpacity>
+          )}
           
           <TouchableOpacity style={styles.retakeButton} onPress={onRetake}>
             <Ionicons name="refresh" size={20} color="#fff" />
@@ -489,6 +556,35 @@ const styles = StyleSheet.create({
     color: '#6C757D',
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  savedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D4EDDA',
+    padding: 12,
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#27AE60',
+    gap: 8,
+  },
+  savedText: {
+    fontSize: 14,
+    color: '#155724',
+    fontWeight: '500',
+  },
+  regenerateButton: {
+    backgroundColor: '#9B59B6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 12,
+    gap: 8,
   },
   retryButton: {
     backgroundColor: '#3498DB',

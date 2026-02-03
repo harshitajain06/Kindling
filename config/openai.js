@@ -29,7 +29,7 @@ export const generateParentingAnalysis = async (questionnaireResults) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert child psychologist and parenting coach with 20+ years of experience. You specialize in analyzing parenting styles and providing evidence-based recommendations for positive parenting development.`
+            content: `You are an expert child psychologist and parenting coach with 20+ years of experience. You specialize in analyzing parenting approaches and providing evidence-based recommendations for positive parenting development. IMPORTANT: Never use parenting style labels like "Authoritarian", "Permissive", "Authoritative", "Neglectful", or "Mixed" in your analysis. Instead, describe the parent's approach using descriptive terms like "structured", "warm", "balanced", "flexible", etc. Focus on behaviors and characteristics, not labels.`
           },
           {
             role: 'user',
@@ -64,44 +64,57 @@ const createAnalysisPrompt = (questionnaireResults) => {
   const { dominantStyle, counts, answers } = questionnaireResults;
   
   const questionMapping = {
-    1: "When your child makes a mistake, you typically...",
-    2: "How do you handle rules at home?",
-    3: "When your child wants to try something new (like a hobby or activity), you...",
-    4: "How do you respond to your child's emotions?",
-    5: "When your child breaks a rule, you...",
-    6: "How often do you spend quality time with your child?",
-    7: "How do you handle your child questioning your decisions?",
-    8: "What is your top parenting goal?",
-    9: "How do you respond to your child's academic struggles?",
-    10: "How do you balance your needs with your child's?"
+    A1: "I explain the reason behind the rules (not just \"because I said so\").",
+    A2: "I set clear expectations, and I'm open to discussion if my teen disagrees respectfully.",
+    A3: "When my teen messes up, we focus on learning and consequences—not shame.",
+    A4: "I encourage independence while still setting boundaries.",
+    A5: "I regularly check in on feelings (stress, friendships, mood) and listen fully.",
+    B1: "I expect immediate obedience when I give an instruction.",
+    B2: "I believe strict rules matter more than my teen's opinion in family decisions.",
+    B3: "I use punishment to enforce compliance (even if my teen doesn't understand why).",
+    B4: "If my teen questions a rule, I see it as disrespectful.",
+    B5: "I raise my voice or use threats when my teen won't cooperate.",
+    C1: "I avoid setting firm rules because I don't want conflict.",
+    C2: "If my teen strongly resists, I often give in to keep peace.",
+    C3: "I prefer being a friend to my teen rather than enforcing discipline.",
+    C4: "My teen decides most things (sleep, screen time, study routine) with minimal limits.",
+    C5: "Even when rules exist, I don't consistently follow through on consequences.",
+    D1: "I'm often too busy/tired to notice my teen's emotional state.",
+    D2: "I rarely track school deadlines, friendships, or daily routines.",
+    D3: "I don't have clear expectations about behavior at home.",
+    D4: "When problems come up, I tend to disengage rather than address them.",
+    D5: "I spend very little one-on-one time talking or doing activities with my teen."
   };
 
-  let prompt = `Please analyze this parenting style assessment and provide a comprehensive analysis. Here are the results:
+  let prompt = `Please analyze this parenting assessment and provide a comprehensive analysis. Here are the results:
 
 **Assessment Results:**
-- Dominant Style: ${dominantStyle}
-- Score Breakdown: ${JSON.stringify(counts)}
+- Score Breakdown (mean scores 1-5): ${JSON.stringify(counts)}
+${questionnaireResults.confidence !== undefined ? `- Confidence Score: ${questionnaireResults.confidence.toFixed(2)} (${questionnaireResults.confidenceLevel || 'unknown'} confidence)` : ''}
 
 **Detailed Responses:**
 `;
 
   // Add each question and answer
-  Object.entries(answers).forEach(([questionId, answerType]) => {
+  Object.entries(answers).forEach(([questionId, answerValue]) => {
     const questionText = questionMapping[questionId];
-    prompt += `\nQuestion ${questionId}: ${questionText}\nAnswer: ${answerType}\n`;
+    const likertLabel = ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'][answerValue - 1] || answerValue;
+    prompt += `\nQuestion ${questionId}: ${questionText}\nAnswer: ${answerValue} (${likertLabel})\n`;
   });
 
   prompt += `
 
 Please provide a comprehensive analysis that includes:
 
-1. **Overall Assessment**: A detailed analysis of the parenting style based on the responses
+1. **Overall Assessment**: A detailed analysis of the parenting approach based on the responses. DO NOT use parenting style labels like "Authoritarian", "Permissive", "Authoritative", "Neglectful", or "Mixed". Instead, describe their approach using descriptive terms.
 2. **Strengths**: Specific strengths of this parenting approach
 3. **Areas for Growth**: Areas where the parent could improve
-4. **Child Development Impact**: How this style likely affects the child's development
+4. **Child Development Impact**: How this approach likely affects the child's development
 5. **Specific Recommendations**: 3-5 actionable recommendations for improvement
 6. **Long-term Considerations**: What to consider for the child's future development
 7. **Balancing Act**: How to maintain strengths while addressing growth areas
+
+IMPORTANT: Never mention parenting style types like "Authoritarian", "Permissive", "Authoritative", "Neglectful", or "Mixed" anywhere in your response. Use descriptive language about their parenting behaviors and characteristics instead.
 
 Please be encouraging, evidence-based, and practical in your recommendations. Focus on positive parenting techniques and child development research.`;
 
@@ -205,23 +218,34 @@ export const generateEncouragingQuote = async (questionnaireResults) => {
     
     // Analyze sentiment and generate quote
     const questionMapping = {
-      1: "When your child makes a mistake, you typically...",
-      2: "How do you handle rules at home?",
-      3: "When your child wants to try something new (like a hobby or activity), you...",
-      4: "How do you respond to your child's emotions?",
-      5: "When your child breaks a rule, you...",
-      6: "How often do you spend quality time with your child?",
-      7: "How do you handle your child questioning your decisions?",
-      8: "What is your top parenting goal?",
-      9: "How do you respond to your child's academic struggles?",
-      10: "How do you balance your needs with your child's?"
+      A1: "I explain the reason behind the rules (not just \"because I said so\").",
+      A2: "I set clear expectations, and I'm open to discussion if my teen disagrees respectfully.",
+      A3: "When my teen messes up, we focus on learning and consequences—not shame.",
+      A4: "I encourage independence while still setting boundaries.",
+      A5: "I regularly check in on feelings (stress, friendships, mood) and listen fully.",
+      B1: "I expect immediate obedience when I give an instruction.",
+      B2: "I believe strict rules matter more than my teen's opinion in family decisions.",
+      B3: "I use punishment to enforce compliance (even if my teen doesn't understand why).",
+      B4: "If my teen questions a rule, I see it as disrespectful.",
+      B5: "I raise my voice or use threats when my teen won't cooperate.",
+      C1: "I avoid setting firm rules because I don't want conflict.",
+      C2: "If my teen strongly resists, I often give in to keep peace.",
+      C3: "I prefer being a friend to my teen rather than enforcing discipline.",
+      C4: "My teen decides most things (sleep, screen time, study routine) with minimal limits.",
+      C5: "Even when rules exist, I don't consistently follow through on consequences.",
+      D1: "I'm often too busy/tired to notice my teen's emotional state.",
+      D2: "I rarely track school deadlines, friendships, or daily routines.",
+      D3: "I don't have clear expectations about behavior at home.",
+      D4: "When problems come up, I tend to disengage rather than address them.",
+      D5: "I spend very little one-on-one time talking or doing activities with my teen."
     };
 
     let assessmentContext = `Based on your parenting assessment, here are your responses:\n\n`;
     
-    Object.entries(answers).forEach(([questionId, answerType]) => {
+    Object.entries(answers).forEach(([questionId, answerValue]) => {
       const questionText = questionMapping[questionId];
-      assessmentContext += `Question ${questionId}: ${questionText}\nAnswer: ${answerType}\n\n`;
+      const likertLabel = ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'][answerValue - 1] || answerValue;
+      assessmentContext += `Question ${questionId}: ${questionText}\nAnswer: ${answerValue} (${likertLabel})\n\n`;
     });
 
     assessmentContext += `Score breakdown: ${JSON.stringify(counts)}\n`;
@@ -284,23 +308,34 @@ export const generateDescriptiveTitle = async (questionnaireResults) => {
     const { dominantStyle, counts, answers } = questionnaireResults;
     
     const questionMapping = {
-      1: "When your child makes a mistake, you typically...",
-      2: "How do you handle rules at home?",
-      3: "When your child wants to try something new (like a hobby or activity), you...",
-      4: "How do you respond to your child's emotions?",
-      5: "When your child breaks a rule, you...",
-      6: "How often do you spend quality time with your child?",
-      7: "How do you handle your child questioning your decisions?",
-      8: "What is your top parenting goal?",
-      9: "How do you respond to your child's academic struggles?",
-      10: "How do you balance your needs with your child's?"
+      A1: "I explain the reason behind the rules (not just \"because I said so\").",
+      A2: "I set clear expectations, and I'm open to discussion if my teen disagrees respectfully.",
+      A3: "When my teen messes up, we focus on learning and consequences—not shame.",
+      A4: "I encourage independence while still setting boundaries.",
+      A5: "I regularly check in on feelings (stress, friendships, mood) and listen fully.",
+      B1: "I expect immediate obedience when I give an instruction.",
+      B2: "I believe strict rules matter more than my teen's opinion in family decisions.",
+      B3: "I use punishment to enforce compliance (even if my teen doesn't understand why).",
+      B4: "If my teen questions a rule, I see it as disrespectful.",
+      B5: "I raise my voice or use threats when my teen won't cooperate.",
+      C1: "I avoid setting firm rules because I don't want conflict.",
+      C2: "If my teen strongly resists, I often give in to keep peace.",
+      C3: "I prefer being a friend to my teen rather than enforcing discipline.",
+      C4: "My teen decides most things (sleep, screen time, study routine) with minimal limits.",
+      C5: "Even when rules exist, I don't consistently follow through on consequences.",
+      D1: "I'm often too busy/tired to notice my teen's emotional state.",
+      D2: "I rarely track school deadlines, friendships, or daily routines.",
+      D3: "I don't have clear expectations about behavior at home.",
+      D4: "When problems come up, I tend to disengage rather than address them.",
+      D5: "I spend very little one-on-one time talking or doing activities with my teen."
     };
 
     let assessmentContext = `Based on your parenting assessment:\n\n`;
     
-    Object.entries(answers).forEach(([questionId, answerType]) => {
+    Object.entries(answers).forEach(([questionId, answerValue]) => {
       const questionText = questionMapping[questionId];
-      assessmentContext += `Question ${questionId}: ${questionText}\nAnswer: ${answerType}\n\n`;
+      const likertLabel = ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'][answerValue - 1] || answerValue;
+      assessmentContext += `Question ${questionId}: ${questionText}\nAnswer: ${answerValue} (${likertLabel})\n\n`;
     });
 
     assessmentContext += `Score breakdown: ${JSON.stringify(counts)}`;
@@ -391,7 +426,7 @@ export const generateFallbackAnalysis = (questionnaireResults) => {
   
   const fallbackAnalyses = {
     Authoritative: {
-      overallAssessment: "Your responses indicate an Authoritative parenting style, which is considered one of the most effective approaches. You balance warmth and structure effectively, showing both responsiveness to your child's needs and clear expectations.",
+      overallAssessment: "Your responses indicate a balanced and effective parenting approach. You balance warmth and structure effectively, showing both responsiveness to your child's needs and clear expectations.",
       strengths: [
         "Excellent balance between support and structure",
         "Strong communication and reasoning skills",
@@ -403,7 +438,7 @@ export const generateFallbackAnalysis = (questionnaireResults) => {
         "Consider your child's developmental stage when setting expectations",
         "Ensure you're taking care of your own needs as well"
       ],
-      childDevelopmentImpact: "Children raised with Authoritative parenting typically develop strong self-esteem, good social skills, and academic success. They tend to be independent, responsible, and emotionally well-adjusted.",
+      childDevelopmentImpact: "Children raised with this balanced approach typically develop strong self-esteem, good social skills, and academic success. They tend to be independent, responsible, and emotionally well-adjusted.",
       specificRecommendations: [
         "Maintain your current approach as it's working well",
         "Continue open communication with your child",
@@ -414,7 +449,7 @@ export const generateFallbackAnalysis = (questionnaireResults) => {
       balancingAct: "You're already doing well at balancing structure with warmth. Continue to listen to your child while maintaining appropriate boundaries."
     },
     Authoritarian: {
-      overallAssessment: "Your responses suggest an Authoritarian parenting style, characterized by high expectations and strict discipline. While this approach can be effective in some situations, there may be opportunities to incorporate more warmth and explanation.",
+      overallAssessment: "Your responses suggest a structured parenting approach with high expectations and clear discipline. While structure is important, there may be opportunities to incorporate more warmth and explanation.",
       strengths: [
         "Clear rules and expectations",
         "Strong sense of responsibility",
@@ -438,7 +473,7 @@ export const generateFallbackAnalysis = (questionnaireResults) => {
       balancingAct: "Try to maintain your high standards while adding more warmth and explanation. Your child will benefit from understanding the 'why' behind the rules."
     },
     Permissive: {
-      overallAssessment: "Your responses indicate a Permissive parenting style, where you prioritize your child's happiness and freedom. While this creates a loving environment, adding some structure could benefit both you and your child.",
+      overallAssessment: "Your responses indicate a warm and nurturing parenting approach where you prioritize your child's happiness and freedom. While this creates a loving environment, adding some structure could benefit both you and your child.",
       strengths: [
         "High emotional warmth and support",
         "Strong parent-child bond",

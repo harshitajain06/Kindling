@@ -10,107 +10,141 @@ import {
     View,
 } from 'react-native';
 
+// Likert scale labels
+const LIKERT_SCALE = [
+  { value: 1, label: 'Never' },
+  { value: 2, label: 'Rarely' },
+  { value: 3, label: 'Sometimes' },
+  { value: 4, label: 'Often' },
+  { value: 5, label: 'Always' },
+];
+
+// 20 questions organized by style (5 per style)
 const questions = [
+  // Authoritative (A1-A5)
   {
-    id: 1,
-    question: "When your child makes a mistake, you typically...",
-    options: [
-      { text: "Talk through the mistake and discuss consequences together.", type: "Authoritative" },
-      { text: "Enforce a strict punishment with no discussion.", type: "Authoritarian" },
-      { text: "Let it go—they'll figure it out eventually.", type: "Permissive" },
-      { text: "Might not even be aware it happened.", type: "Neglectful" }
-    ]
+    id: 'A1',
+    question: "I explain the reason behind the rules (not just \"because I said so\").",
+    style: 'Authoritative',
+    category: 'A'
   },
   {
-    id: 2,
-    question: "How do you handle rules at home?",
-    options: [
-      { text: "Set clear rules but allow discussion and flexibility.", type: "Authoritative" },
-      { text: "Have many strict rules and expect complete obedience.", type: "Authoritarian" },
-      { text: "Rarely enforce rules—it's more important for them to be happy.", type: "Permissive" },
-      { text: "Don't really have rules or expectations.", type: "Neglectful" }
-    ]
+    id: 'A2',
+    question: "I set clear expectations, and I'm open to discussion if my teen disagrees respectfully.",
+    style: 'Authoritative',
+    category: 'A'
   },
   {
-    id: 3,
-    question: "When your child wants to try something new (like a hobby or activity), you...",
-    options: [
-      { text: "Encourage them and guide them if needed.", type: "Authoritative" },
-      { text: "Allow it only if you believe it's a worthwhile activity.", type: "Authoritarian" },
-      { text: "Support whatever they want—it's totally up to them.", type: "Permissive" },
-      { text: "Are often unaware of their interests.", type: "Neglectful" }
-    ]
+    id: 'A3',
+    question: "When my teen messes up, we focus on learning and consequences—not shame.",
+    style: 'Authoritative',
+    category: 'A'
   },
   {
-    id: 4,
-    question: "How do you respond to your child's emotions?",
-    options: [
-      { text: "Acknowledge and validate their feelings while helping them cope.", type: "Authoritative" },
-      { text: "Expect them to suppress emotions and \"toughen up.\"", type: "Authoritarian" },
-      { text: "Comfort them immediately and try to avoid anything that causes distress.", type: "Permissive" },
-      { text: "Struggle to connect with or notice their emotions.", type: "Neglectful" }
-    ]
+    id: 'A4',
+    question: "I encourage independence while still setting boundaries.",
+    style: 'Authoritative',
+    category: 'A'
   },
   {
-    id: 5,
-    question: "When your child breaks a rule, you...",
-    options: [
-      { text: "Explain why the rule matters and enforce a fair consequence.", type: "Authoritative" },
-      { text: "Punish them to ensure they never do it again.", type: "Authoritarian" },
-      { text: "Don't enforce consequences—mistakes are part of life.", type: "Permissive" },
-      { text: "Rarely follow up or take action.", type: "Neglectful" }
-    ]
+    id: 'A5',
+    question: "I regularly check in on feelings (stress, friendships, mood) and listen fully.",
+    style: 'Authoritative',
+    category: 'A'
+  },
+  // Authoritarian (B1-B5)
+  {
+    id: 'B1',
+    question: "I expect immediate obedience when I give an instruction.",
+    style: 'Authoritarian',
+    category: 'B'
   },
   {
-    id: 6,
-    question: "How often do you spend quality time with your child?",
-    options: [
-      { text: "Regularly and intentionally—it's a priority.", type: "Authoritative" },
-      { text: "Only during structured family time.", type: "Authoritarian" },
-      { text: "Whenever they want to, often letting them lead.", type: "Permissive" },
-      { text: "Rarely, due to being busy or unavailable.", type: "Neglectful" }
-    ]
+    id: 'B2',
+    question: "I believe strict rules matter more than my teen's opinion in family decisions.",
+    style: 'Authoritarian',
+    category: 'B'
   },
   {
-    id: 7,
-    question: "How do you handle your child questioning your decisions?",
-    options: [
-      { text: "Welcome discussion and explain your reasoning.", type: "Authoritative" },
-      { text: "Discourage any form of backtalk—your word is final.", type: "Authoritarian" },
-      { text: "Usually go along with what they want.", type: "Permissive" },
-      { text: "Don't engage—it's their problem.", type: "Neglectful" }
-    ]
+    id: 'B3',
+    question: "I use punishment to enforce compliance (even if my teen doesn't understand why).",
+    style: 'Authoritarian',
+    category: 'B'
   },
   {
-    id: 8,
-    question: "What is your top parenting goal?",
-    options: [
-      { text: "Raising a confident, independent, and empathetic child.", type: "Authoritative" },
-      { text: "Ensuring discipline, respect, and success.", type: "Authoritarian" },
-      { text: "Keeping them happy and avoiding conflict.", type: "Permissive" },
-      { text: "Just getting through the day.", type: "Neglectful" }
-    ]
+    id: 'B4',
+    question: "If my teen questions a rule, I see it as disrespectful.",
+    style: 'Authoritarian',
+    category: 'B'
   },
   {
-    id: 9,
-    question: "How do you respond to your child's academic struggles?",
-    options: [
-      { text: "Help them work through it and find resources or strategies.", type: "Authoritative" },
-      { text: "Demand better performance—no excuses.", type: "Authoritarian" },
-      { text: "Reassure them that grades don't matter much.", type: "Permissive" },
-      { text: "Don't involve yourself in their school matters.", type: "Neglectful" }
-    ]
+    id: 'B5',
+    question: "I raise my voice or use threats when my teen won't cooperate.",
+    style: 'Authoritarian',
+    category: 'B'
+  },
+  // Permissive (C1-C5)
+  {
+    id: 'C1',
+    question: "I avoid setting firm rules because I don't want conflict.",
+    style: 'Permissive',
+    category: 'C'
   },
   {
-    id: 10,
-    question: "How do you balance your needs with your child's?",
-    options: [
-      { text: "Try to meet both with healthy boundaries.", type: "Authoritative" },
-      { text: "Prioritize your authority and expectations.", type: "Authoritarian" },
-      { text: "Put their needs and wants first, always.", type: "Permissive" },
-      { text: "Focus mostly on your own needs and space.", type: "Neglectful" }
-    ]
-  }
+    id: 'C2',
+    question: "If my teen strongly resists, I often give in to keep peace.",
+    style: 'Permissive',
+    category: 'C'
+  },
+  {
+    id: 'C3',
+    question: "I prefer being a friend to my teen rather than enforcing discipline.",
+    style: 'Permissive',
+    category: 'C'
+  },
+  {
+    id: 'C4',
+    question: "My teen decides most things (sleep, screen time, study routine) with minimal limits.",
+    style: 'Permissive',
+    category: 'C'
+  },
+  {
+    id: 'C5',
+    question: "Even when rules exist, I don't consistently follow through on consequences.",
+    style: 'Permissive',
+    category: 'C'
+  },
+  // Uninvolved/Neglectful (D1-D5)
+  {
+    id: 'D1',
+    question: "I'm often too busy/tired to notice my teen's emotional state.",
+    style: 'Uninvolved',
+    category: 'D'
+  },
+  {
+    id: 'D2',
+    question: "I rarely track school deadlines, friendships, or daily routines.",
+    style: 'Uninvolved',
+    category: 'D'
+  },
+  {
+    id: 'D3',
+    question: "I don't have clear expectations about behavior at home.",
+    style: 'Uninvolved',
+    category: 'D'
+  },
+  {
+    id: 'D4',
+    question: "When problems come up, I tend to disengage rather than address them.",
+    style: 'Uninvolved',
+    category: 'D'
+  },
+  {
+    id: 'D5',
+    question: "I spend very little one-on-one time talking or doing activities with my teen.",
+    style: 'Uninvolved',
+    category: 'D'
+  },
 ];
 
 export default function ParentingStyleQuestionnaire({ onComplete }) {
@@ -118,8 +152,8 @@ export default function ParentingStyleQuestionnaire({ onComplete }) {
   const [answers, setAnswers] = useState({});
   const [fadeAnim] = useState(new Animated.Value(1));
 
-  const handleAnswer = (questionId, answerType) => {
-    const newAnswers = { ...answers, [questionId]: answerType };
+  const handleAnswer = (questionId, value) => {
+    const newAnswers = { ...answers, [questionId]: value };
     setAnswers(newAnswers);
 
     // Animate to next question
@@ -148,35 +182,122 @@ export default function ParentingStyleQuestionnaire({ onComplete }) {
   };
 
   const calculateResults = (answers) => {
-    const counts = {
-      Authoritative: 0,
-      Authoritarian: 0,
-      Permissive: 0,
-      Neglectful: 0
-    };
+    // Step 1: Compute subscale scores (means)
+    const authoritativeScores = [];
+    const authoritarianScores = [];
+    const permissiveScores = [];
+    const uninvolvedScores = [];
 
-    Object.values(answers).forEach(answer => {
-      counts[answer]++;
+    questions.forEach(q => {
+      const answer = answers[q.id];
+      if (answer !== undefined) {
+        switch (q.style) {
+          case 'Authoritative':
+            authoritativeScores.push(answer);
+            break;
+          case 'Authoritarian':
+            authoritarianScores.push(answer);
+            break;
+          case 'Permissive':
+            permissiveScores.push(answer);
+            break;
+          case 'Uninvolved':
+            uninvolvedScores.push(answer);
+            break;
+        }
+      }
     });
 
-    const dominantStyle = Object.keys(counts).reduce((a, b) => 
-      counts[a] > counts[b] ? a : b
-    );
+    const AUTHO = authoritativeScores.length > 0 
+      ? authoritativeScores.reduce((a, b) => a + b, 0) / authoritativeScores.length 
+      : 0;
+    const AUTHN = authoritarianScores.length > 0 
+      ? authoritarianScores.reduce((a, b) => a + b, 0) / authoritarianScores.length 
+      : 0;
+    const PERM = permissiveScores.length > 0 
+      ? permissiveScores.reduce((a, b) => a + b, 0) / permissiveScores.length 
+      : 0;
+    const UNINV = uninvolvedScores.length > 0 
+      ? uninvolvedScores.reduce((a, b) => a + b, 0) / uninvolvedScores.length 
+      : 0;
+
+    const scores = {
+      Authoritative: AUTHO,
+      Authoritarian: AUTHN,
+      Permissive: PERM,
+      Uninvolved: UNINV
+    };
+
+    // Step 2: Assign parenting style label (highest subscale score)
+    const sortedScores = Object.entries(scores)
+      .sort(([, a], [, b]) => b - a);
+
+    const topScore = sortedScores[0];
+    const secondTopScore = sortedScores[1];
+
+    // Step 3: Calculate confidence score
+    const confidence = topScore[1] - (secondTopScore ? secondTopScore[1] : 0);
+
+    // Step 4: Handle edge cases / tie-break
+    let predictedStyle = topScore[0];
+    let isMixed = false;
+    let mixedStyles = null;
+
+    if (confidence < 0.20 && secondTopScore) {
+      isMixed = true;
+      mixedStyles = [topScore[0], secondTopScore[0]].sort().join('–');
+      predictedStyle = 'Mixed';
+    }
+
+    // Map Uninvolved to Neglectful for backward compatibility
+    const styleMapping = {
+      'Authoritative': 'Authoritative',
+      'Authoritarian': 'Authoritarian',
+      'Permissive': 'Permissive',
+      'Uninvolved': 'Neglectful',
+      'Mixed': 'Mixed'
+    };
+
+    const dominantStyle = styleMapping[predictedStyle] || predictedStyle;
+
+    // Interpret confidence
+    let confidenceLevel = 'low';
+    if (confidence >= 0.51) {
+      confidenceLevel = 'strong';
+    } else if (confidence >= 0.21) {
+      confidenceLevel = 'moderate';
+    }
 
     return {
       dominantStyle,
-      counts,
-      answers
+      scores,
+      confidence,
+      confidenceLevel,
+      isMixed,
+      mixedStyles,
+      answers,
+      // For backward compatibility, also include counts (but as means)
+      counts: {
+        Authoritative: Math.round(AUTHO * 10) / 10,
+        Authoritarian: Math.round(AUTHN * 10) / 10,
+        Permissive: Math.round(PERM * 10) / 10,
+        Neglectful: Math.round(UNINV * 10) / 10
+      }
     };
   };
 
   const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const currentQ = questions[currentQuestion];
+  const selectedValue = answers[currentQ?.id];
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Parenting Style Assessment</Text>
         <Text style={styles.subtitle}>Question {currentQuestion + 1} of {questions.length}</Text>
+        <Text style={styles.instruction}>
+          Answer based on your typical behavior with your teen (10–17)
+        </Text>
         
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
@@ -186,19 +307,36 @@ export default function ParentingStyleQuestionnaire({ onComplete }) {
 
       <Animated.View style={[styles.questionContainer, { opacity: fadeAnim }]}>
         <Text style={styles.questionText}>
-          {questions[currentQuestion].question}
+          {currentQ?.question}
         </Text>
 
         <ScrollView style={styles.optionsContainer}>
-          {questions[currentQuestion].options.map((option, index) => (
+          <View style={styles.scaleLabels}>
+            <Text style={styles.scaleLabel}>Never</Text>
+            <Text style={styles.scaleLabel}>Always</Text>
+          </View>
+
+          {LIKERT_SCALE.map((scale) => (
             <TouchableOpacity
-              key={index}
-              style={styles.optionButton}
-              onPress={() => handleAnswer(questions[currentQuestion].id, option.type)}
+              key={scale.value}
+              style={[
+                styles.radioButton,
+                selectedValue === scale.value && styles.radioButtonSelected
+              ]}
+              onPress={() => handleAnswer(currentQ.id, scale.value)}
             >
-              <View style={styles.optionContent}>
-                <Text style={styles.optionText}>{option.text}</Text>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
+              <View style={styles.radioContent}>
+                <View style={styles.radioCircle}>
+                  {selectedValue === scale.value && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <Text style={[
+                  styles.radioLabel,
+                  selectedValue === scale.value && styles.radioLabelSelected
+                ]}>
+                  {scale.value}. {scale.label}
+                </Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -230,6 +368,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6C757D',
     textAlign: 'center',
+    marginBottom: 5,
+  },
+  instruction: {
+    fontSize: 14,
+    color: '#6C757D',
+    textAlign: 'center',
+    fontStyle: 'italic',
     marginBottom: 15,
   },
   progressContainer: {
@@ -252,36 +397,70 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C3E50',
     lineHeight: 26,
-    marginBottom: 30,
+    marginBottom: 20,
     textAlign: 'center',
   },
   optionsContainer: {
     flex: 1,
   },
-  optionButton: {
+  scaleLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  scaleLabel: {
+    fontSize: 12,
+    color: '#6C757D',
+    fontWeight: '500',
+  },
+  radioButton: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#E9ECEF',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  optionContent: {
+  radioButtonSelected: {
+    borderColor: '#3498DB',
+    backgroundColor: '#EBF5FB',
+  },
+  radioContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     padding: 16,
   },
-  optionText: {
+  radioCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#6C757D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#3498DB',
+  },
+  radioLabel: {
     fontSize: 16,
     color: '#2C3E50',
     flex: 1,
-    lineHeight: 22,
+  },
+  radioLabelSelected: {
+    fontWeight: '600',
+    color: '#2C3E50',
   },
 });
-

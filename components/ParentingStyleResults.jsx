@@ -17,14 +17,16 @@ const getStyleIcon = (style) => {
     Authoritative: "heart-circle",
     Authoritarian: "school",
     Permissive: "heart",
-    Neglectful: "refresh-circle"
+    Neglectful: "refresh-circle",
+    Uninvolved: "refresh-circle",
+    Mixed: "swap-horizontal"
   };
   return iconMap[style] || "heart";
 };
 
 const styleDescriptions = {
   Authoritative: {
-    title: "Authoritative Parent",
+    title: "Balanced Approach",
     emoji: "🤝",
     description: "You balance warmth and structure beautifully!",
     characteristics: [
@@ -48,7 +50,7 @@ const styleDescriptions = {
     color: "#27AE60"
   },
   Authoritarian: {
-    title: "Authoritarian Parent",
+    title: "Structured Approach",
     emoji: "📏",
     description: "You value discipline and structure!",
     characteristics: [
@@ -73,7 +75,7 @@ const styleDescriptions = {
     color: "#E74C3C"
   },
   Permissive: {
-    title: "Permissive Parent",
+    title: "Warm Approach",
     emoji: "💝",
     description: "You prioritize your child's happiness and freedom!",
     characteristics: [
@@ -98,7 +100,33 @@ const styleDescriptions = {
     color: "#F39C12"
   },
   Neglectful: {
-    title: "Neglectful Parent",
+    title: "Growth Opportunity",
+    emoji: "😔",
+    description: "You may be dealing with challenges that affect your parenting!",
+  },
+  Mixed: {
+    title: "Flexible Approach",
+    emoji: "🔄",
+    description: "Your parenting approach combines different elements beautifully!",
+    characteristics: [
+      "Your responses show a blend of different parenting approaches",
+      "You may adapt your approach based on the situation",
+      "There's potential to develop a more consistent approach"
+    ],
+    strengths: [
+      "Flexibility in your parenting approach",
+      "Awareness of different parenting strategies",
+      "Opportunity to refine your approach"
+    ],
+    tips: [
+      "Consider which aspects of your approach work best for your family",
+      "Aim for consistency while maintaining flexibility",
+      "Focus on balancing warmth and structure"
+    ],
+    color: "#9B59B6"
+  },
+  Uninvolved: {
+    title: "Growth Opportunity",
     emoji: "😔",
     description: "You may be dealing with challenges that affect your parenting!",
     characteristics: [
@@ -125,8 +153,10 @@ const styleDescriptions = {
 };
 
 export default function ParentingStyleResults({ results, onRetake, onClose, onViewAIAnalysis }) {
-  const { dominantStyle, counts } = results;
-  const styleInfo = styleDescriptions[dominantStyle];
+  const { dominantStyle } = results;
+  // Map Uninvolved to Neglectful for display (they're the same style)
+  const displayStyle = dominantStyle === 'Uninvolved' ? 'Neglectful' : dominantStyle;
+  const styleInfo = styleDescriptions[displayStyle] || styleDescriptions['Authoritative'];
   const [descriptiveTitle, setDescriptiveTitle] = useState(null);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(true);
 
@@ -150,21 +180,6 @@ export default function ParentingStyleResults({ results, onRetake, onClose, onVi
     generateTitle();
   }, [results, styleInfo]);
 
-  const getScoreBar = (style, count) => {
-    const maxCount = Math.max(...Object.values(counts));
-    const percentage = (count / maxCount) * 100;
-    
-    return (
-      <View key={style} style={styles.scoreItem}>
-        <Text style={styles.scoreLabel}>{style}</Text>
-        <View style={styles.scoreBarContainer}>
-          <View style={[styles.scoreBar, { width: `${percentage}%`, backgroundColor: styleDescriptions[style].color }]} />
-        </View>
-        <Text style={styles.scoreValue}>{count}/10</Text>
-      </View>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollContainer}>
@@ -174,7 +189,7 @@ export default function ParentingStyleResults({ results, onRetake, onClose, onVi
             <View style={[styles.iconOuterRing, { borderColor: `${styleInfo.color}40` }]}>
               <View style={[styles.iconCircle, { backgroundColor: styleInfo.color }]}>
                 <Ionicons 
-                  name={getStyleIcon(dominantStyle)} 
+                  name={getStyleIcon(displayStyle)} 
                   size={48} 
                   color="#fff" 
                 />
@@ -193,11 +208,6 @@ export default function ParentingStyleResults({ results, onRetake, onClose, onVi
           )}
         </View>
 
-        {/* Score Breakdown */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Results</Text>
-          {Object.entries(counts).map(([style, count]) => getScoreBar(style, count))}
-        </View>
 
         {/* Characteristics */}
         <View style={styles.section}>
@@ -409,6 +419,48 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  mixedStyleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3CD',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F39C12',
+  },
+  mixedStyleText: {
+    fontSize: 14,
+    color: '#856404',
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  confidenceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+  },
+  confidenceLabel: {
+    fontSize: 14,
+    color: '#6C757D',
+    fontWeight: '500',
+  },
+  confidenceValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confidenceLow: {
+    color: '#E74C3C',
+  },
+  confidenceModerate: {
+    color: '#F39C12',
+  },
+  confidenceStrong: {
+    color: '#27AE60',
   },
 });
 

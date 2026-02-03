@@ -2,11 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { ActivityIndicator, Alert, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import AIParentingAnalysis from "../../components/AIParentingAnalysis";
 import ParentingStyleQuestionnaire from "../../components/ParentingStyleQuestionnaire";
 import ParentingStyleResults from "../../components/ParentingStyleResults";
 import { auth } from '../../config/firebase';
-import { generateEncouragingQuote } from '../../config/openai';
+import { generateEncouragingQuote, generateParentingAnalysis, generateFallbackAnalysis } from '../../config/openai';
 import { getAssessmentResults, getChallengeProgress, saveAssessmentResults, saveChallengeProgress } from "../../services/assessmentService";
 
 // Function to get personalized suggestions based on parenting style
@@ -155,32 +154,25 @@ const getQuickActions = (dominantStyle) => {
 
 // Function to get detailed analysis based on assessment results
 const getDetailedAnalysis = (dominantStyle, counts) => {
-  const totalQuestions = 10;
-  const dominantCount = counts?.[dominantStyle] || 0;
-  const dominantPercentage = (dominantCount / totalQuestions) * 100;
-
   const analyses = {
     Authoritative: [
       {
         icon: "trending-up",
         color: "#27AE60",
         title: "Balanced Approach",
-        description: `Your responses show a strong balance between structure and warmth. This approach typically leads to confident, well-adjusted children.`,
-        percentage: dominantPercentage
+        description: `Your responses show a strong balance between structure and warmth. This approach typically leads to confident, well-adjusted children.`
       },
       {
         icon: "heart",
         color: "#E74C3C",
         title: "Emotional Connection",
-        description: "Your responses show high emotional responsiveness. You're likely very attuned to your child's feelings and needs.",
-        percentage: 85
+        description: "Your responses show high emotional responsiveness. You're likely very attuned to your child's feelings and needs."
       },
       {
         icon: "shield-checkmark",
         color: "#3498DB",
         title: "Consistent Boundaries",
-        description: "You maintain clear expectations while being flexible. This helps children feel secure and understood.",
-        percentage: 90
+        description: "You maintain clear expectations while being flexible. This helps children feel secure and understood."
       }
     ],
     Authoritarian: [
@@ -188,22 +180,19 @@ const getDetailedAnalysis = (dominantStyle, counts) => {
         icon: "school",
         color: "#E74C3C",
         title: "High Standards",
-        description: `Your responses indicate strong emphasis on discipline and respect. Your children likely perform well academically.`,
-        percentage: dominantPercentage
+        description: `Your responses indicate strong emphasis on discipline and respect. Your children likely perform well academically.`
       },
       {
         icon: "trophy",
         color: "#F39C12",
         title: "Achievement Focus",
-        description: "Your parenting emphasizes success and achievement. Consider balancing this with emotional support.",
-        percentage: 80
+        description: "Your parenting emphasizes success and achievement. Consider balancing this with emotional support."
       },
       {
         icon: "time",
         color: "#95A5A6",
         title: "Structure Preference",
-        description: "You value order and predictability. This can be beneficial but may need flexibility in some situations.",
-        percentage: 75
+        description: "You value order and predictability. This can be beneficial but may need flexibility in some situations."
       }
     ],
     Permissive: [
@@ -211,22 +200,19 @@ const getDetailedAnalysis = (dominantStyle, counts) => {
         icon: "happy",
         color: "#F39C12",
         title: "Child-Centered",
-        description: `Your responses show high warmth and acceptance. Your children likely feel very loved and supported.`,
-        percentage: dominantPercentage
+        description: `Your responses show high warmth and acceptance. Your children likely feel very loved and supported.`
       },
       {
         icon: "heart-circle",
         color: "#E74C3C",
         title: "Emotional Support",
-        description: "You excel at providing emotional comfort and understanding. This creates strong parent-child bonds.",
-        percentage: 95
+        description: "You excel at providing emotional comfort and understanding. This creates strong parent-child bonds."
       },
       {
         icon: "hand-left",
         color: "#3498DB",
         title: "Flexibility",
-        description: "You adapt well to your child's needs and preferences. Consider adding some consistent boundaries.",
-        percentage: 70
+        description: "You adapt well to your child's needs and preferences. Consider adding some consistent boundaries."
       }
     ],
     Neglectful: [
@@ -234,22 +220,19 @@ const getDetailedAnalysis = (dominantStyle, counts) => {
         icon: "refresh",
         color: "#95A5A6",
         title: "Growth Opportunity",
-        description: `Your assessment results indicate an opportunity for positive change and increased involvement. Every step forward matters.`,
-        percentage: dominantPercentage
+        description: `Your assessment results indicate an opportunity for positive change and increased involvement. Every step forward matters.`
       },
       {
         icon: "bulb",
         color: "#F39C12",
         title: "Self-Awareness",
-        description: "Taking this assessment shows you're ready to improve your parenting approach. This is a great first step.",
-        percentage: 60
+        description: "Taking this assessment shows you're ready to improve your parenting approach. This is a great first step."
       },
       {
         icon: "people",
         color: "#3498DB",
         title: "Support Available",
-        description: "There are many resources and support systems available to help you strengthen your parenting skills.",
-        percentage: 50
+        description: "There are many resources and support systems available to help you strengthen your parenting skills."
       }
     ]
   };
@@ -517,7 +500,7 @@ const getRecommendedResources = (dominantStyle) => {
         icon: "people",
         color: "#27AE60",
         title: "Mentoring Other Parents",
-        description: "Share your successful strategies and learn from other authoritative parents.",
+        description: "Share your successful strategies and learn from other parents.",
         type: "Community",
         duration: "Ongoing"
       }
@@ -642,6 +625,10 @@ export default function PersonlizedScreen() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showArticleModal, setShowArticleModal] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState(null);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [isLoadingAiAnalysis, setIsLoadingAiAnalysis] = useState(false);
+  const [aiAnalysisError, setAiAnalysisError] = useState(null);
+  const [showAiAnalysis, setShowAiAnalysis] = useState(false);
 
   // Load existing assessment data when component mounts
   useEffect(() => {
@@ -669,6 +656,10 @@ export default function PersonlizedScreen() {
               } finally {
                 setIsGeneratingQuote(false);
               }
+            }
+            // Load existing AI analysis if available
+            if (existingResults.aiAnalysis) {
+              setAiAnalysis(existingResults.aiAnalysis);
             }
           }
           
@@ -738,31 +729,75 @@ export default function PersonlizedScreen() {
     setCurrentScreen('home');
   };
 
-  const handleViewAIAnalysis = () => {
-    setCurrentScreen('ai-analysis');
+  const handleViewAIAnalysis = async () => {
+    // If analysis already exists, just show it
+    if (questionnaireResults?.aiAnalysis) {
+      setAiAnalysis(questionnaireResults.aiAnalysis);
+      setShowAiAnalysis(true);
+      return;
+    }
+
+    // If we already have analysis loaded, just show it
+    if (aiAnalysis) {
+      setShowAiAnalysis(true);
+      return;
+    }
+
+    // Generate new analysis
+    setIsLoadingAiAnalysis(true);
+    setAiAnalysisError(null);
+    setShowAiAnalysis(true);
+
+    try {
+      let analysisData;
+      try {
+        analysisData = await generateParentingAnalysis(questionnaireResults);
+      } catch (apiError) {
+        console.log('OpenAI API not available, using fallback analysis');
+        analysisData = generateFallbackAnalysis(questionnaireResults);
+      }
+      setAiAnalysis(analysisData);
+    } catch (err) {
+      console.error('Error generating analysis:', err);
+      setAiAnalysisError('Failed to generate analysis. Please try again.');
+    } finally {
+      setIsLoadingAiAnalysis(false);
+    }
   };
 
-  const handleBackFromAnalysis = () => {
-    setCurrentScreen('results');
-  };
-
-  const handleRetakeFromAnalysis = () => {
-    setCurrentScreen('questionnaire');
-  };
 
   const handleSaveAnalysis = async (analysis) => {
-    if (user) {
-      try {
-        // Save the AI analysis to Firebase
-        await saveAssessmentResults(user.uid, {
-          ...questionnaireResults,
-          aiAnalysis: analysis
-        });
-        console.log('AI analysis saved to Firebase');
-      } catch (error) {
-        console.error('Error saving AI analysis:', error);
-        Alert.alert('Warning', 'Analysis generated but failed to save. You can still view it.');
-      }
+    if (!user) {
+      return {
+        success: false,
+        message: 'You must be logged in to save your analysis.'
+      };
+    }
+
+    if (!analysis) {
+      return {
+        success: false,
+        message: 'No analysis data to save.'
+      };
+    }
+
+    try {
+      // Save the AI analysis to Firebase with timestamp
+      await saveAssessmentResults(user.uid, {
+        ...questionnaireResults,
+        aiAnalysis: {
+          ...analysis,
+          savedAt: new Date().toISOString()
+        }
+      });
+      console.log('AI analysis saved to Firebase');
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving AI analysis:', error);
+      return {
+        success: false,
+        message: 'Failed to save analysis. Please check your connection and try again.'
+      };
     }
   };
 
@@ -784,12 +819,12 @@ export default function PersonlizedScreen() {
     const articleContent = {
       // Authoritative parenting articles
       "Advanced Communication Techniques": {
-        title: "Advanced Communication Techniques for Authoritative Parents",
+        title: "Advanced Communication Techniques",
         content: `# Mastering Advanced Communication with Your Child
 
-## The Foundation of Authoritative Parenting
+## The Foundation of Effective Parenting
 
-As an authoritative parent, you already understand the importance of clear communication. However, mastering advanced communication techniques can elevate your parenting to new heights, creating deeper connections and more effective guidance for your child.
+Clear communication is essential for effective parenting. Mastering advanced communication techniques can elevate your parenting to new heights, creating deeper connections and more effective guidance for your child.
 
 ## The Art of Active Listening
 
@@ -902,11 +937,11 @@ Remember, mastering these techniques takes time and practice. Be patient with yo
       },
       "Balancing Structure with Flexibility": {
         title: "Balancing Structure with Flexibility: The Authoritative Approach",
-        content: `# The Perfect Balance: Structure and Flexibility in Authoritative Parenting
+        content: `# The Perfect Balance: Structure and Flexibility in Parenting
 
 ## Understanding the Dynamic Duo
 
-As an authoritative parent, you've mastered the art of providing both structure and flexibility. This delicate balance is what sets authoritative parenting apart and creates the optimal environment for your child's development.
+Providing both structure and flexibility is a delicate balance that creates the optimal environment for your child's development.
 
 ## The Science Behind the Balance
 
@@ -1056,12 +1091,12 @@ Remember, finding the perfect balance is an ongoing process. What works for one 
         category: "Parenting Style"
       },
       "Mentoring Other Parents": {
-        title: "Mentoring Other Parents: Sharing Your Authoritative Wisdom",
+        title: "Mentoring Other Parents: Sharing Your Wisdom",
         content: `# Becoming a Parenting Mentor: Sharing Your Authoritative Wisdom
 
 ## The Gift of Experience
 
-As an authoritative parent, you've developed valuable skills and insights that can benefit other parents on their journey. Mentoring other parents is not just about sharing advice—it's about creating a supportive community and helping families thrive.
+You've developed valuable skills and insights that can benefit other parents on their journey. Mentoring other parents is not just about sharing advice—it's about creating a supportive community and helping families thrive.
 
 ## Why Mentoring Matters
 
@@ -1164,12 +1199,12 @@ Remember, mentoring is a two-way street. While you're helping other parents, you
       },
       // Authoritarian parenting articles
       "Building Emotional Connection": {
-        title: "Building Emotional Connection: A Guide for Authoritarian Parents",
-        content: `# Building Emotional Connection: A Guide for Authoritarian Parents
+        title: "Building Emotional Connection: A Guide",
+        content: `# Building Emotional Connection: A Guide
 
 ## Understanding the Challenge
 
-As an authoritarian parent, you excel at providing structure and discipline. However, building emotional connection can sometimes feel challenging when you're focused on maintaining order and respect. This guide will help you strengthen your emotional bond with your child while preserving your structured approach.
+Providing structure and discipline is important, and building emotional connection can sometimes feel challenging when you're focused on maintaining order and respect. This guide will help you strengthen your emotional bond with your child while preserving your structured approach.
 
 ## Why Emotional Connection Matters
 
@@ -1179,7 +1214,7 @@ As an authoritarian parent, you excel at providing structure and discipline. How
 - **Behavior**: Connected children are more likely to follow rules willingly
 - **Development**: Strong emotional bonds support healthy psychological development
 
-### The Authoritarian Advantage
+### The Structured Approach Advantage
 - **Consistency**: Your structured approach provides a stable foundation
 - **Clear Expectations**: Children know what to expect from you
 - **Respect**: Your authority, when combined with warmth, creates deep respect
@@ -1313,7 +1348,7 @@ As an authoritarian parent, you excel at providing structure and discipline. How
 
 ## Remember: Balance is Key
 
-You don't have to choose between being authoritative and being emotionally connected. In fact, the most effective authoritarian parents are those who combine their structured approach with genuine warmth and emotional support. Your child needs both the security of clear boundaries and the comfort of knowing they are deeply loved and valued.
+You don't have to choose between structure and being emotionally connected. In fact, the most effective parents are those who combine their structured approach with genuine warmth and emotional support. Your child needs both the security of clear boundaries and the comfort of knowing they are deeply loved and valued.
 
 Start with small changes, be patient with yourself and your child, and remember that building emotional connection is a journey, not a destination. Every small step you take toward greater emotional connection will strengthen your relationship and make your parenting more effective.`,
         author: "Dr. Maria Santos, Child Psychologist",
@@ -1321,12 +1356,12 @@ Start with small changes, be patient with yourself and your child, and remember 
         category: "Emotional Development"
       },
       "Open Communication Skills": {
-        title: "Open Communication Skills for Authoritarian Parents",
-        content: `# Open Communication Skills for Authoritarian Parents
+        title: "Open Communication Skills",
+        content: `# Open Communication Skills
 
 ## The Communication Challenge
 
-As an authoritarian parent, you excel at setting clear expectations and maintaining order. However, open communication can sometimes feel challenging when you're used to being the authority figure. This guide will help you develop communication skills that maintain your leadership role while encouraging your child to share their thoughts and feelings.
+Setting clear expectations and maintaining order is important. However, open communication can sometimes feel challenging when you're used to being the authority figure. This guide will help you develop communication skills that maintain your leadership role while encouraging your child to share their thoughts and feelings.
 
 ## Why Open Communication Matters
 
@@ -1342,7 +1377,7 @@ As an authoritarian parent, you excel at setting clear expectations and maintain
 - **Stronger Relationships**: Deeper understanding between family members
 - **Peaceful Home**: More harmonious family environment
 
-## The Authoritarian Communication Style
+## The Structured Communication Style
 
 ### Your Natural Strengths
 - **Clear Expectations**: You communicate rules and boundaries effectively
@@ -1507,12 +1542,12 @@ Your structured approach provides the foundation, and open communication builds 
         category: "Communication"
       },
       "Flexible Discipline Strategies": {
-        title: "Flexible Discipline Strategies for Authoritarian Parents",
-        content: `# Flexible Discipline Strategies for Authoritarian Parents
+        title: "Flexible Discipline Strategies",
+        content: `# Flexible Discipline Strategies
 
 ## The Discipline Evolution
 
-As an authoritarian parent, you understand the importance of structure and consequences. However, incorporating flexibility into your discipline approach can make your parenting more effective while maintaining the respect and order that are important to you. This guide will help you develop flexible discipline strategies that work with your natural parenting style.
+Structure and consequences are important in parenting. However, incorporating flexibility into your discipline approach can make your parenting more effective while maintaining the respect and order that are important to you. This guide will help you develop flexible discipline strategies.
 
 ## Why Flexibility in Discipline Matters
 
@@ -1717,12 +1752,12 @@ The goal is to raise a child who not only follows rules but understands why they
       },
       // Permissive parenting articles
       "Setting Healthy Boundaries": {
-        title: "Setting Healthy Boundaries: A Guide for Permissive Parents",
-        content: `# Setting Healthy Boundaries: A Guide for Permissive Parents
+        title: "Setting Healthy Boundaries: A Guide",
+        content: `# Setting Healthy Boundaries: A Guide
 
 ## The Boundary Challenge
 
-As a permissive parent, you excel at showing love, warmth, and understanding. However, setting healthy boundaries can sometimes feel challenging when you want to avoid conflict and keep your child happy. This guide will help you establish clear, loving boundaries that protect your child while maintaining your warm, supportive approach.
+Showing love, warmth, and understanding is important. However, setting healthy boundaries can sometimes feel challenging when you want to avoid conflict and keep your child happy. This guide will help you establish clear, loving boundaries that protect your child while maintaining your warm, supportive approach.
 
 ## Why Boundaries Matter
 
@@ -1732,7 +1767,7 @@ As a permissive parent, you excel at showing love, warmth, and understanding. Ho
 - **Learning**: Boundaries teach children about appropriate behavior and social norms
 - **Development**: Healthy boundaries support emotional and social development
 
-### The Permissive Advantage
+### The Warm Approach Advantage
 - **Warmth**: Your loving approach makes boundaries feel supportive rather than punitive
 - **Understanding**: You can explain boundaries with empathy and compassion
 - **Flexibility**: You can adapt boundaries to your child's individual needs
@@ -1951,12 +1986,12 @@ Start with small changes, be patient with yourself and your child, and remember 
         category: "Boundaries"
       },
       "Consistent Follow-Through": {
-        title: "Consistent Follow-Through: A Guide for Permissive Parents",
-        content: `# Consistent Follow-Through: A Guide for Permissive Parents
+        title: "Consistent Follow-Through: A Guide",
+        content: `# Consistent Follow-Through: A Guide
 
 ## The Follow-Through Challenge
 
-As a permissive parent, you excel at understanding your child's feelings and maintaining a warm, loving relationship. However, following through on consequences can sometimes feel challenging when you want to avoid conflict and keep your child happy. This guide will help you develop consistent follow-through skills while maintaining your compassionate approach.
+Understanding your child's feelings and maintaining a warm, loving relationship is important. However, following through on consequences can sometimes feel challenging when you want to avoid conflict and keep your child happy. This guide will help you develop consistent follow-through skills while maintaining your compassionate approach.
 
 ## Why Follow-Through Matters
 
@@ -1966,7 +2001,7 @@ As a permissive parent, you excel at understanding your child's feelings and mai
 - **Security**: Consistent responses create a predictable, safe environment
 - **Development**: Follow-through teaches responsibility and accountability
 
-### The Permissive Advantage
+### The Warm Approach Advantage
 - **Empathy**: Your understanding approach makes consequences feel fair rather than harsh
 - **Communication**: You can explain consequences with compassion and clarity
 - **Relationship**: Your strong bond makes it easier to enforce consequences lovingly
@@ -2156,12 +2191,12 @@ Start with small changes, be patient with yourself and your child, and remember 
         category: "Discipline"
       },
       "Teaching Responsibility": {
-        title: "Teaching Responsibility: A Guide for Permissive Parents",
-        content: `# Teaching Responsibility: A Guide for Permissive Parents
+        title: "Teaching Responsibility: A Guide",
+        content: `# Teaching Responsibility: A Guide
 
 ## The Responsibility Challenge
 
-As a permissive parent, you excel at showing love, understanding, and support. However, teaching responsibility can sometimes feel challenging when you want to protect your child from difficulties and keep them happy. This guide will help you teach responsibility while maintaining your warm, supportive approach.
+Showing love, understanding, and support is important. However, teaching responsibility can sometimes feel challenging when you want to protect your child from difficulties and keep them happy. This guide will help you teach responsibility while maintaining your warm, supportive approach.
 
 ## Why Teaching Responsibility Matters
 
@@ -2171,7 +2206,7 @@ As a permissive parent, you excel at showing love, understanding, and support. H
 - **Relationships**: Responsible children are better friends, siblings, and family members
 - **Future Success**: Responsibility is essential for success in school, work, and life
 
-### The Permissive Advantage
+### The Warm Approach Advantage
 - **Patience**: Your understanding approach makes teaching responsibility feel supportive
 - **Encouragement**: You can celebrate small steps and progress
 - **Individual Attention**: You can adapt teaching methods to your child's unique needs
@@ -2385,8 +2420,8 @@ Start with small steps, be patient with the process, and remember that every res
       },
       // Neglectful parenting articles
       "Creating Quality Time": {
-        title: "Creating Quality Time: A Guide for Neglectful Parents",
-        content: `# Creating Quality Time: A Guide for Neglectful Parents
+        title: "Creating Quality Time: A Guide",
+        content: `# Creating Quality Time: A Guide
 
 ## The Connection Challenge
 
@@ -2624,8 +2659,8 @@ The most important thing is to start. Even 10 minutes of focused attention can b
         category: "Connection"
       },
       "Seeking Support": {
-        title: "Seeking Support: A Guide for Neglectful Parents",
-        content: `# Seeking Support: A Guide for Neglectful Parents
+        title: "Seeking Support: A Guide",
+        content: `# Seeking Support: A Guide
 
 ## The Support Journey
 
@@ -3012,16 +3047,6 @@ Your child deserves your best effort, and you deserve the support you need to gi
     );
   }
 
-  if (currentScreen === 'ai-analysis') {
-    return (
-      <AIParentingAnalysis
-        questionnaireResults={questionnaireResults}
-        onBack={handleBackFromAnalysis}
-        onRetake={handleRetakeFromAnalysis}
-        onSave={handleSaveAnalysis}
-      />
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -3083,6 +3108,112 @@ Your child deserves your best effort, and you deserve the support you need to gi
               </TouchableOpacity>
         </View>
 
+            {/* AI-Powered Analysis */}
+            {showAiAnalysis && (
+              <View style={styles.aiAnalysisBox}>
+                <View style={styles.aiAnalysisHeader}>
+                  <Ionicons name="analytics" size={28} color="#9B59B6" />
+                  <Text style={styles.sectionTitle}>AI-Powered Analysis</Text>
+                  {aiAnalysis?.isFallback && (
+                    <View style={styles.fallbackNotice}>
+                      <Ionicons name="information-circle" size={14} color="#F39C12" />
+                      <Text style={styles.fallbackText}>Basic Analysis</Text>
+                    </View>
+                  )}
+                </View>
+
+                {isLoadingAiAnalysis ? (
+                  <View style={styles.aiAnalysisLoading}>
+                    <ActivityIndicator size="large" color="#9B59B6" />
+                    <Text style={styles.aiAnalysisLoadingText}>Generating your personalized analysis...</Text>
+                    <Text style={styles.aiAnalysisLoadingSubtext}>This may take a few moments</Text>
+                  </View>
+                ) : aiAnalysisError ? (
+                  <View style={styles.aiAnalysisError}>
+                    <Ionicons name="alert-circle" size={40} color="#E74C3C" />
+                    <Text style={styles.aiAnalysisErrorText}>{aiAnalysisError}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={handleViewAIAnalysis}>
+                      <Ionicons name="refresh" size={20} color="#fff" />
+                      <Text style={styles.retryButtonText}>Try Again</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : aiAnalysis ? (
+                  <>
+                    {/* Overall Assessment */}
+                    {aiAnalysis.overallAssessment && (
+                      <View style={styles.aiAnalysisSection}>
+                        <Text style={styles.aiAnalysisSectionTitle}>Overall Assessment</Text>
+                        <Text style={styles.aiAnalysisText}>{aiAnalysis.overallAssessment}</Text>
+                      </View>
+                    )}
+
+                    {/* Strengths */}
+                    {aiAnalysis.strengths && aiAnalysis.strengths.length > 0 && (
+                      <View style={styles.aiAnalysisSection}>
+                        <Text style={styles.aiAnalysisSectionTitle}>Your Strengths</Text>
+                        {aiAnalysis.strengths.map((strength, index) => (
+                          <View key={index} style={styles.aiAnalysisListItem}>
+                            <Ionicons name="checkmark-circle" size={20} color="#27AE60" />
+                            <Text style={styles.aiAnalysisListText}>{strength}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Areas for Growth */}
+                    {aiAnalysis.areasForGrowth && aiAnalysis.areasForGrowth.length > 0 && (
+                      <View style={styles.aiAnalysisSection}>
+                        <Text style={styles.aiAnalysisSectionTitle}>Areas for Growth</Text>
+                        {aiAnalysis.areasForGrowth.map((area, index) => (
+                          <View key={index} style={styles.aiAnalysisListItem}>
+                            <Ionicons name="trending-up" size={20} color="#3498DB" />
+                            <Text style={styles.aiAnalysisListText}>{area}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Child Development Impact */}
+                    {aiAnalysis.childDevelopmentImpact && (
+                      <View style={styles.aiAnalysisSection}>
+                        <Text style={styles.aiAnalysisSectionTitle}>Impact on Your Child's Development</Text>
+                        <Text style={styles.aiAnalysisText}>{aiAnalysis.childDevelopmentImpact}</Text>
+                      </View>
+                    )}
+
+                    {/* Specific Recommendations */}
+                    {aiAnalysis.specificRecommendations && aiAnalysis.specificRecommendations.length > 0 && (
+                      <View style={styles.aiAnalysisSection}>
+                        <Text style={styles.aiAnalysisSectionTitle}>Specific Recommendations</Text>
+                        {aiAnalysis.specificRecommendations.map((recommendation, index) => (
+                          <View key={index} style={styles.aiAnalysisListItem}>
+                            <Ionicons name="bulb" size={20} color="#F39C12" />
+                            <Text style={styles.aiAnalysisListText}>{recommendation}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Long-term Considerations */}
+                    {aiAnalysis.longTermConsiderations && (
+                      <View style={styles.aiAnalysisSection}>
+                        <Text style={styles.aiAnalysisSectionTitle}>Long-term Considerations</Text>
+                        <Text style={styles.aiAnalysisText}>{aiAnalysis.longTermConsiderations}</Text>
+                      </View>
+                    )}
+
+                    {/* Balancing Act */}
+                    {aiAnalysis.balancingAct && (
+                      <View style={styles.aiAnalysisSection}>
+                        <Text style={styles.aiAnalysisSectionTitle}>Finding Balance</Text>
+                        <Text style={styles.aiAnalysisText}>{aiAnalysis.balancingAct}</Text>
+                      </View>
+                    )}
+                  </>
+                ) : null}
+              </View>
+            )}
+
             {/* Personalized Recommendations */}
             <View style={styles.recommendationsBox}>
               <Text style={styles.sectionTitle}>Your Personalized Journey</Text>
@@ -3121,11 +3252,6 @@ Your child deserves your best effort, and you deserve the support you need to gi
                     <Text style={styles.analysisTitle}>{analysis.title}</Text>
       </View>
                   <Text style={styles.analysisDescription}>{analysis.description}</Text>
-                  {analysis.percentage && (
-                    <View style={styles.percentageBar}>
-                      <View style={[styles.percentageFill, { width: `${analysis.percentage}%`, backgroundColor: analysis.color }]} />
-                    </View>
-                  )}
                 </View>
               ))}
             </View>
@@ -3400,6 +3526,34 @@ Your child deserves your best effort, and you deserve the support you need to gi
       </View>
           </>
         )}
+
+        {/* Parenting Styles Information Section */}
+        <View style={styles.parentingStylesBox}>
+          <Text style={styles.sectionTitle}>Understanding Parenting Styles</Text>
+          <Text style={styles.parentingStylesIntro}>
+            The concept of parenting styles originates from Diana Baumrind's seminal work (1960s–1970s) and was later expanded by Maccoby & Martin (1983). Parenting styles are classified based on two core psychological dimensions:
+          </Text>
+          
+          <View style={styles.dimensionItem}>
+            <View style={styles.dimensionHeader}>
+              <Ionicons name="heart" size={24} color="#E74C3C" />
+              <Text style={styles.dimensionTitle}>Responsiveness (Warmth)</Text>
+            </View>
+            <Text style={styles.dimensionDescription}>
+              The degree to which parents are emotionally supportive, empathetic, communicative, and attuned to a child's needs.
+            </Text>
+          </View>
+
+          <View style={styles.dimensionItem}>
+            <View style={styles.dimensionHeader}>
+              <Ionicons name="shield-checkmark" size={24} color="#3498DB" />
+              <Text style={styles.dimensionTitle}>Demandingness (Control)</Text>
+            </View>
+            <Text style={styles.dimensionDescription}>
+              The extent to which parents set expectations, enforce rules, monitor behavior, and provide structure.
+            </Text>
+          </View>
+        </View>
     </ScrollView>
 
     {/* Challenge Info Modal */}
@@ -4747,5 +4901,157 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  parentingStylesBox: {
+    width: "90%",
+    backgroundColor: "#fff",
+    marginVertical: 15,
+    marginBottom: 30,
+    padding: 25,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  parentingStylesIntro: {
+    fontSize: 15,
+    color: "#6C757D",
+    lineHeight: 22,
+    marginBottom: 20,
+    textAlign: "left",
+  },
+  dimensionItem: {
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#3498DB",
+  },
+  dimensionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  dimensionTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: "#1C2541",
+    marginLeft: 10,
+  },
+  dimensionDescription: {
+    fontSize: 14,
+    color: "#6C757D",
+    lineHeight: 20,
+    textAlign: "left",
+  },
+  aiAnalysisBox: {
+    width: "90%",
+    backgroundColor: "#fff",
+    marginVertical: 15,
+    padding: 25,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  aiAnalysisHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 10,
+  },
+  fallbackNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3CD',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 'auto',
+    gap: 6,
+  },
+  fallbackText: {
+    fontSize: 12,
+    color: '#856404',
+    fontWeight: '500',
+  },
+  aiAnalysisLoading: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  aiAnalysisLoadingText: {
+    fontSize: 16,
+    color: '#6C757D',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  aiAnalysisLoadingSubtext: {
+    fontSize: 14,
+    color: '#95A5A6',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  aiAnalysisError: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  aiAnalysisErrorText: {
+    fontSize: 16,
+    color: '#E74C3C',
+    marginTop: 15,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#3498DB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  aiAnalysisSection: {
+    marginBottom: 25,
+  },
+  aiAnalysisSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1C2541',
+    marginBottom: 12,
+  },
+  aiAnalysisText: {
+    fontSize: 15,
+    color: '#6C757D',
+    lineHeight: 22,
+  },
+  aiAnalysisListItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  aiAnalysisListText: {
+    fontSize: 15,
+    color: '#2C3E50',
+    marginLeft: 12,
+    flex: 1,
+    lineHeight: 22,
   },
 });
